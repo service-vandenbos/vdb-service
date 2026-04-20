@@ -1529,19 +1529,13 @@
       state.serviceEvents = eRes.data || [];
       enrichData();
 
-      const visible = getVisibleCustomers();
-      if (!visible.some(c => c.id === state.selectedCustomerId)) {
-        state.selectedCustomerId = visible[0]?.id || state.enrichedCustomers[0]?.id || null;
-      }
+      state.statusFilter = 'all';
+      state.search = '';
+      state.selectedCustomerId = null;
 
       renderKpis();
-      renderCustomerList();
-      renderMap();
+      applyStatusFilter('all');
       renderDetail();
-
-      if (state.selectedCustomerId) {
-        selectCustomer(state.selectedCustomerId);
-      }
     }
 
     async function bootstrap() {
