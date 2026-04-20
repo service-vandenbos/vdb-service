@@ -131,9 +131,56 @@
       text-overflow: ellipsis !important;
     }
     .machine-meta > * { min-width: 0; }
-  </style>
+  
+    #authGate {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(47,151,255,.16), transparent 22%),
+        linear-gradient(180deg, rgba(8,17,29,.98) 0%, rgba(10,18,32,.98) 100%);
+    }
+    #authGate.hidden { display: none; }
+    .auth-card {
+      width: min(100%, 460px);
+      border-radius: 32px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(10, 18, 32, 0.92);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 40px rgba(0,0,0,.24);
+      padding: 28px;
+    }
+</style>
 </head>
 <body class="text-slate-100 antialiased">
+
+  <div id="authGate">
+    <div class="auth-card">
+      <div class="text-[11px] uppercase tracking-[0.42em] text-brand-300/90">Service App</div>
+      <div class="mt-3 text-4xl font-black tracking-tight sm:text-5xl">
+        <span class="text-slate-100">VAN DEN</span>
+        <span class="text-[#34df78]"> BOS</span>
+      </div>
+      <div class="mt-2 text-2xl text-slate-200">robotics Service</div>
+      <div class="mt-6 text-lg font-semibold text-slate-100">Beveiligde toegang</div>
+      <div class="mt-2 text-sm text-slate-400">Voer het wachtwoord in om de service-app te openen.</div>
+      <div class="mt-5">
+        <label class="mb-2 block text-sm text-slate-300">Wachtwoord</label>
+        <input id="loginPasswordInput" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Wachtwoord" />
+      </div>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button id="loginSubmitBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white transition hover:bg-brand-400">Inloggen</button>
+      </div>
+      <div id="loginError" class="mt-4 hidden rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+        Onjuist wachtwoord.
+      </div>
+    </div>
+  </div>
+
   <div class="mx-auto max-w-[1600px] px-5 py-6 sm:px-8">
     <header class="glass rounded-[32px] px-7 py-6 shadow-panel">
       <div class="flex items-start justify-between gap-6">
@@ -448,6 +495,8 @@
 
   <script>
     const STORAGE_KEY = 'vdb_dashboard_config';
+    const AUTH_KEY = 'vdb_service_auth_ok';
+    const APP_PASSWORD = '7602KS@lmelo';
     const DEFAULT_TABLES = {
       customers: 'customers',
       machines: 'machines',
@@ -491,6 +540,41 @@
       toast.classList.remove('hidden');
       clearTimeout(showToast._t);
       showToast._t = setTimeout(() => toast.classList.add('hidden'), 2600);
+    }
+
+    function isAuthenticated() {
+      return localStorage.getItem(AUTH_KEY) === '1';
+    }
+
+    function showAuthGate() {
+      el('authGate')?.classList.remove('hidden');
+      setTimeout(() => el('loginPasswordInput')?.focus(), 60);
+    }
+
+    function hideAuthGate() {
+      el('authGate')?.classList.add('hidden');
+    }
+
+    function doLogin() {
+      const input = el('loginPasswordInput');
+      const error = el('loginError');
+      const value = input?.value || '';
+
+      if (value === APP_PASSWORD) {
+        localStorage.setItem(AUTH_KEY, '1');
+        if (error) error.classList.add('hidden');
+        if (input) input.value = '';
+        hideAuthGate();
+        return true;
+      }
+
+      if (error) error.classList.remove('hidden');
+      return false;
+    }
+
+    function doLogout() {
+      localStorage.removeItem(AUTH_KEY);
+      showAuthGate();
     }
 
     function safeClose(dialogId) {
@@ -1445,13 +1529,19 @@
       state.serviceEvents = eRes.data || [];
       enrichData();
 
-      state.statusFilter = 'all';
-      state.search = '';
-      state.selectedCustomerId = null;
+      const visible = getVisibleCustomers();
+      if (!visible.some(c => c.id === state.selectedCustomerId)) {
+        state.selectedCustomerId = visible[0]?.id || state.enrichedCustomers[0]?.id || null;
+      }
 
       renderKpis();
-      applyStatusFilter('all');
+      renderCustomerList();
+      renderMap();
       renderDetail();
+
+      if (state.selectedCustomerId) {
+        selectCustomer(state.selectedCustomerId);
+      }
     }
 
     async function bootstrap() {
@@ -1498,6 +1588,12 @@
           console.error(err);
           showToast(err?.message || 'Verversen mislukt');
         }
+      });
+
+      on('logoutBtn', 'click', () => doLogout());
+      on('loginSubmitBtn', 'click', () => doLogin());
+      on('loginPasswordInput', 'keydown', (e) => {
+        if (e.key === 'Enter') doLogin();
       });
 
       on('openCustomersBtn', 'click', () => {
@@ -1659,6 +1755,10 @@
 
     bindEvents();
     applyStatusFilter('all');
+
+    if (isAuthenticated()) hideAuthGate();
+    else showAuthGate();
+
     bootstrap().catch(err => {
       console.error(err);
       showToast(err?.message || 'Kon dashboard niet laden');
