@@ -838,6 +838,8 @@
       const ok = window.confirm('Weet je zeker dat je dit servicebezoek wilt verwijderen?');
       if (!ok) return false;
 
+      const customerId = state.selectedCustomerId;
+
       const { error } = await state.supabase
         .from(state.config.service_events)
         .delete()
@@ -846,7 +848,18 @@
       if (error) throw error;
 
       await loadData();
-      if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
+
+      if (customerId) {
+        state.selectedCustomerId = customerId;
+        renderCustomerList();
+        renderDetail();
+
+        const refreshedCustomer = state.enrichedCustomers.find(c => c.id === customerId);
+        if (refreshedCustomer) {
+          renderHistory(refreshedCustomer);
+        }
+      }
+
       return true;
     }
 
@@ -1352,9 +1365,6 @@
           try {
             const deleted = await deleteServiceEventById(btn.dataset.deleteServiceEvent);
             if (!deleted) return;
-
-            const refreshedCustomer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
-            if (refreshedCustomer) renderHistory(refreshedCustomer);
 
             showToast('Servicebezoek verwijderd');
           } catch (err) {
