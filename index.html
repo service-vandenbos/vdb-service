@@ -1492,7 +1492,6 @@
         el('serviceHistoryDialogList').innerHTML = '';
         el('machinesDialogCustomer').textContent = '-';
         el('machinesDialogList').innerHTML = '';
-        el('serviceRequestedWrap')?.classList.add('hidden');
         return;
       }
 
@@ -1663,12 +1662,14 @@
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
+        const savedId = state.selectedCustomerId;
         const newValue = !customer.service_requested;
         try {
           const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
           if (error) throw error;
           await loadData();
-          selectCustomer(state.selectedCustomerId);
+          state.selectedCustomerId = savedId;
+          selectCustomer(savedId);
         } catch (err) {
           console.error(err);
           showToast(err?.message || 'Opslaan mislukt');
