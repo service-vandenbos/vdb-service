@@ -258,6 +258,15 @@
             <div id="customerMachineCount" class="mt-5 text-5xl font-semibold tracking-tight text-slate-100">0</div>
           </div>
         </div>
+        <div id="serviceRequestedWrap" class="hidden mt-4 rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+          <div class="text-xs uppercase tracking-[0.34em] text-slate-400">Aanvraag verstuurd</div>
+          <div class="mt-3 flex items-center gap-4">
+            <button id="serviceRequestedToggle" data-checked="false" class="relative h-7 w-14 rounded-full border border-white/10 bg-white/10 transition-colors duration-200">
+              <span id="serviceRequestedKnob" class="absolute left-1 top-1 h-5 w-5 rounded-full bg-slate-400 transition-all duration-200"></span>
+            </button>
+            <span id="serviceRequestedLabel" class="text-xl font-semibold text-slate-400">Nee</span>
+          </div>
+        </div>
 
         <div class="mt-5 flex flex-wrap gap-3">
           <button id="editCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant bewerken</button>
@@ -316,6 +325,10 @@
         <div>
           <label class="mb-1 block text-sm text-slate-300">Notitie</label>
           <input id="customerNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Korte notitie" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">E-mailadres klant</label>
+          <input id="customerEmailInput" type="email" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="klant@bedrijf.nl" />
         </div>
         <div>
           <label class="mb-1 block text-sm text-slate-300">Latitude</label>
@@ -668,6 +681,7 @@
       el('customerCityInput').value = '';
       el('customerCountryInput').value = 'Nederland';
       el('customerNoteInput').value = '';
+      if (el('customerEmailInput')) el('customerEmailInput').value = '';
       el('customerLatitudeInput').value = '';
       el('customerLongitudeInput').value = '';
     }
@@ -679,6 +693,7 @@
       el('customerCityInput').value = customer?.city || '';
       el('customerCountryInput').value = customer?.country || 'Nederland';
       el('customerNoteInput').value = customer?.note || '';
+      if (el('customerEmailInput')) el('customerEmailInput').value = customer?.email || '';
       el('customerLatitudeInput').value = customer?.latitude ?? '';
       el('customerLongitudeInput').value = customer?.longitude ?? '';
     }
@@ -719,6 +734,7 @@
         city: el('customerCityInput').value.trim() || null,
         country: el('customerCountryInput').value.trim() || null,
         note: el('customerNoteInput').value.trim() || null,
+        email: el('customerEmailInput')?.value.trim() || null,
         latitude: el('customerLatitudeInput').value === '' ? null : Number(el('customerLatitudeInput').value),
         longitude: el('customerLongitudeInput').value === '' ? null : Number(el('customerLongitudeInput').value)
       };
@@ -1476,6 +1492,7 @@
         el('serviceHistoryDialogList').innerHTML = '';
         el('machinesDialogCustomer').textContent = '-';
         el('machinesDialogList').innerHTML = '';
+        el('serviceRequestedWrap')?.classList.add('hidden');
         return;
       }
 
@@ -1490,6 +1507,22 @@
       el('customerMachineCount').textContent = customer.machineCount;
       el('editCustomerBtn').disabled = false;
       el('editCustomerBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+
+      const wrap = el('serviceRequestedWrap');
+      const toggle = el('serviceRequestedToggle');
+      const knob = el('serviceRequestedKnob');
+      const srLabel = el('serviceRequestedLabel');
+      if (customer.derivedStatus === 'orange') {
+        wrap?.classList.remove('hidden');
+        const checked = !!customer.service_requested;
+        toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
+        if (toggle) toggle.style.backgroundColor = checked ? '#2fbf85' : '';
+        if (knob) knob.style.left = checked ? '1.75rem' : '0.25rem';
+        if (knob) knob.style.backgroundColor = checked ? '#fff' : '';
+        if (srLabel) { srLabel.textContent = checked ? 'Ja' : 'Nee'; srLabel.className = `text-xl font-semibold ${checked ? 'text-status-green' : 'text-slate-400'}`; }
+      } else {
+        wrap?.classList.add('hidden');
+      }
 
       renderHistory(customer);
       renderMachines(customer);
@@ -1625,6 +1658,21 @@
 
           showMapForFilter('all');
         });
+      });
+
+      on('serviceRequestedToggle', 'click', async () => {
+        const customer = state.customers.find(c => c.id === state.selectedCustomerId);
+        if (!customer) return;
+        const newValue = !customer.service_requested;
+        try {
+          const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
+          if (error) throw error;
+          await loadData();
+          selectCustomer(state.selectedCustomerId);
+        } catch (err) {
+          console.error(err);
+          showToast(err?.message || 'Opslaan mislukt');
+        }
       });
 
       on('refreshBtnTop', 'click', async () => {
