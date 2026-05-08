@@ -107,14 +107,19 @@
         grid-template-columns: repeat(2,minmax(0,1fr)) !important;
         gap: 10px !important;
       }
+      section.mt-6.grid.gap-5.lg\:grid-cols-5 > button:last-child {
+        grid-column: span 2 !important;
+      }
       section.mt-6.grid.gap-5.lg\:grid-cols-5 > button { padding: 14px !important; border-radius: 22px !important; }
       section.mt-6.grid.gap-5.lg\:grid-cols-5 > button div.text-6xl { font-size: 2.5rem !important; margin-top: 10px !important; }
       section.mt-6.grid.gap-6.xl\:grid-cols-\[1\.1fr,\.9fr\] { display: flex !important; flex-direction: column !important; gap: 14px !important; }
       section.mt-6.grid.gap-6.xl\:grid-cols-\[1\.1fr,\.9fr\] > div { width: 100% !important; min-width: 0 !important; }
-      #map { height: 220px !important; }
+      #map { height: 160px !important; }
       #customerDetail h2 { font-size: 2rem !important; line-height: 1.05 !important; }
       #customerStatus, #customerMachineCount { font-size: 2.5rem !important; margin-top: 12px !important; }
-      .sm\:grid-cols-2 { grid-template-columns: 1fr !important; }
+      .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+      .mt-5.flex.flex-wrap.gap-3 { display: grid !important; grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10px !important; }
+      .mt-5.flex.flex-wrap.gap-3 > button { width: 100% !important; text-align: center !important; }
       dialog { padding: 0 !important; width: 94vw !important; max-width: 94vw !important; border-radius: 22px !important; }
       dialog > div { width: 100% !important; max-width: 100% !important; }
       dialog .px-6 { padding-left: 16px !important; padding-right: 16px !important; }
