@@ -379,6 +379,19 @@
           <label class="mb-1 block text-sm text-slate-300">Laatste service (optioneel)</label>
           <input id="machineLastServiceInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
         </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Install Date</label>
+          <input id="machineInstallDateInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Software versie</label>
+          <select id="machineSoftwareVersionInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+            <option value="">— Selecteer versie —</option>
+            <option value="MPV1">MPV1</option>
+            <option value="MPV2">MPV2</option>
+            <option value="MPV3">MPV3</option>
+          </select>
+        </div>
       </div>
       <div class="flex flex-wrap gap-3">
         <button id="saveMachineBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
@@ -763,12 +776,16 @@
       el('machineNameInput').value = '';
       if (el('machineTypeInput')) el('machineTypeInput').value = 'Robotics';
       el('machineLastServiceInput').value = '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = '';
+      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = '';
     }
 
     function fillMachineForm(machine) {
       el('machineNameInput').value = machine?.machine_name || '';
       if (el('machineTypeInput')) el('machineTypeInput').value = machine?.type || 'Robotics';
       el('machineLastServiceInput').value = machine?.last_service || '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = machine?.install_date || '';
+      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = machine?.software_version || '';
     }
 
     function openMachineDialog() {
@@ -833,7 +850,9 @@
         customer_id: customerId,
         machine_name: machineName,
         type: type || null,
-        last_service: lastService || null
+        last_service: lastService || null,
+        install_date: el('machineInstallDateInput')?.value.trim() || null,
+        software_version: el('machineSoftwareVersionInput')?.value || null
       };
 
       if (state.machineDialogMode === 'edit' && state.editingMachineId) {
@@ -1406,7 +1425,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
-              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.install_date ? ` · Install: ${machine.install_date}` : ''}</div>
+              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.install_date ? ` · Install: ${machine.install_date}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}</div>
             </div>
             <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
