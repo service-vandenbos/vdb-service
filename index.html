@@ -1511,7 +1511,7 @@
       const toggle = el('serviceRequestedToggle');
       const knob = el('serviceRequestedKnob');
       const srLabel = el('serviceRequestedLabel');
-      if (customer.derivedStatus === 'orange' || customer.derivedStatus === 'red') {
+      if (customer.derivedStatus === 'orange') {
         wrap?.classList.remove('hidden');
         const checked = !!customer.service_requested;
         toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
@@ -1614,9 +1614,10 @@
       state.serviceEvents = eRes.data || [];
       enrichData();
 
+      const preservedCustomerId = state.selectedCustomerId;
       state.statusFilter = 'all';
       state.search = '';
-      state.selectedCustomerId = null;
+      state.selectedCustomerId = preservedCustomerId;
 
       renderKpis();
       applyStatusFilter('all');
