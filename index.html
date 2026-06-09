@@ -379,6 +379,10 @@
           <label class="mb-1 block text-sm text-slate-300">Laatste service (optioneel)</label>
           <input id="machineLastServiceInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
         </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Install Date (optioneel)</label>
+          <input id="machineInstallDateInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="dd-mm-yyyy" />
+        </div>
       </div>
       <div class="flex flex-wrap gap-3">
         <button id="saveMachineBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
@@ -763,12 +767,14 @@
       el('machineNameInput').value = '';
       if (el('machineTypeInput')) el('machineTypeInput').value = 'Robotics';
       el('machineLastServiceInput').value = '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = '';
     }
 
     function fillMachineForm(machine) {
       el('machineNameInput').value = machine?.machine_name || '';
       if (el('machineTypeInput')) el('machineTypeInput').value = machine?.type || 'Robotics';
       el('machineLastServiceInput').value = machine?.last_service || '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = machine?.install_date || '';
     }
 
     function openMachineDialog() {
@@ -833,7 +839,8 @@
         customer_id: customerId,
         machine_name: machineName,
         type: type || null,
-        last_service: lastService || null
+        last_service: lastService || null,
+        install_date: el('machineInstallDateInput')?.value.trim() || null
       };
 
       if (state.machineDialogMode === 'edit' && state.editingMachineId) {
