@@ -931,7 +931,7 @@
 
       const type = el('machineTypeInput').value;
       const lastService = el('machineLastServiceInput').value.trim();
-      if (lastService && !isValidServiceMonthFormat(lastService)) {
+      if (state.machineDialogMode !== 'edit' && !isValidServiceMonthFormat(lastService)) {
         throw new Error('Laatste service moet in formaat MM-YYYY');
       }
 
