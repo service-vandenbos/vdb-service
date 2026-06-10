@@ -291,7 +291,7 @@
 
         <div class="mt-7">
           <button id="openTimeRegistrationBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
-            <h3 class="text-4xl font-semibold tracking-tight">Tijdregistratie</h3>
+            <h3 class="text-4xl font-semibold tracking-tight">Tijdregistratie Software</h3>
             <span class="text-xl text-slate-400">Uren registreren</span>
           </button>
         </div>
@@ -1947,7 +1947,8 @@
         clearInterval(state.timerInterval);
         state.timerInterval = null;
         const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
-        const rounded = roundToQuarter(elapsed);
+        const rounded = roundToQuarter(Math.max(1, elapsed));
+        state.timerStartTime = null;
         el('timerStopBtn').classList.add('hidden');
         el('timerStartBtn').textContent = 'Opnieuw';
         el('timerStartBtn').classList.remove('hidden');
@@ -1956,7 +1957,6 @@
         info.classList.remove('hidden');
         el('timeHoursInput').value = Math.floor(rounded / 60);
         el('timeMinutesInput').value = rounded % 60;
-        state.timerStartTime = null;
       });
 
       on('saveTimeBtn', 'click', async () => {
