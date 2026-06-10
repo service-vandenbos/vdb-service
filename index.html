@@ -963,7 +963,10 @@
               await loadData();
               state.selectedCustomerId = savedId;
               selectCustomer(savedId);
-              openManageMachinesDialog();
+              safeClose('manageMachinesDialog');
+              const customer = state.enrichedCustomers.find(c => c.id === savedId);
+              if (customer) renderMachines(customer);
+              openModal('machinesDialog');
               showToast('Machine verwijderd');
             } catch (error) {
               console.error(error);
