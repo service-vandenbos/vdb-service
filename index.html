@@ -1751,7 +1751,7 @@
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) { showToast('Selecteer eerst een klant'); return; }
 
-      const roboticsMachines = customer.machines.filter(m => m.type === 'Robotics');
+      const roboticsMachines = customer.machines.filter(m => (m.type || '').toLowerCase() === 'robotics');
       if (!roboticsMachines.length) { showToast('Geen Robotics machines gevonden'); return; }
 
       const container = el('machinesDialogList');
