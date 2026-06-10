@@ -198,7 +198,9 @@
           </div>
         </div>
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
-          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
+          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>
+          <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Urenrapport</button>
+          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
     </header>
@@ -284,6 +286,13 @@
           <button id="openMachinesBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
             <h3 class="text-4xl font-semibold tracking-tight">Machines</h3>
             <span id="machinesTitleCount" class="text-xl text-slate-400">0 machines</span>
+          </button>
+        </div>
+
+        <div class="mt-7">
+          <button id="openTimeRegistrationBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
+            <h3 class="text-4xl font-semibold tracking-tight">Tijdregistratie</h3>
+            <span class="text-xl text-slate-400">Uren registreren</span>
           </button>
         </div>
       </div>
@@ -376,21 +385,8 @@
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Laatste service</label>
+          <label class="mb-1 block text-sm text-slate-300">Laatste service (optioneel)</label>
           <input id="machineLastServiceInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Installatiedatum</label>
-          <input id="machineInstallDateInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Software versie</label>
-          <select id="machineSoftwareVersionInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
-            <option value="">— Selecteer versie —</option>
-            <option value="MPV1">MPV1</option>
-            <option value="MPV2">MPV2</option>
-            <option value="MPV3">MPV3</option>
-          </select>
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
@@ -517,6 +513,74 @@
     </div>
   </dialog>
 
+  <dialog id="timeDialog" class="w-full max-w-xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Tijdregistratie</h3>
+          <div id="timeDialogMachine" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeTimeBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="space-y-4 px-6 py-5">
+      <div>
+        <label class="mb-1 block text-sm text-slate-300">Monteur</label>
+        <input id="timeEngineerInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam monteur" />
+      </div>
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Timer</div>
+        <div id="timerDisplay" class="text-4xl font-semibold tracking-tight text-slate-100 mb-4">00:00:00</div>
+        <div class="flex gap-3">
+          <button id="timerStartBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white transition hover:bg-brand-400">Inchecken</button>
+          <button id="timerStopBtn" class="hidden rounded-2xl bg-status-orange px-4 py-3 font-semibold text-white transition hover:opacity-90">Uitchecken</button>
+        </div>
+        <div id="timerRoundedInfo" class="hidden mt-3 text-sm text-slate-400"></div>
+      </div>
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Handmatig invullen</div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Uren</label>
+            <input id="timeHoursInput" type="number" min="0" max="23" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Minuten (per 15)</label>
+            <select id="timeMinutesInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+              <option value="0">0</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-sm text-slate-300">Notitie</label>
+        <input id="timeNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Optionele notitie" />
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button id="saveTimeBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
+        <button id="cancelTimeBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="timeReportDialog" class="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Urenrapport</h3>
+          <div class="mt-1 text-sm text-slate-400">Overzicht van alle geregistreerde uren per machine per klant</div>
+        </div>
+        <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="px-6 py-5">
+      <div id="timeReportContent" class="scrollbar-thin max-h-[70vh] space-y-4 overflow-auto"></div>
+    </div>
+  </dialog>
+
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
 
   <script>
@@ -547,7 +611,10 @@
       editingCustomerId: null,
       machineDialogMode: 'create',
       editingMachineId: null,
-      customersDialogMode: 'all'
+      customersDialogMode: 'all',
+      timerInterval: null,
+      timerStartTime: null,
+      timerMachineId: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -776,16 +843,12 @@
       el('machineNameInput').value = '';
       if (el('machineTypeInput')) el('machineTypeInput').value = 'Robotics';
       el('machineLastServiceInput').value = '';
-      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = '';
-      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = '';
     }
 
     function fillMachineForm(machine) {
       el('machineNameInput').value = machine?.machine_name || '';
       if (el('machineTypeInput')) el('machineTypeInput').value = machine?.type || 'Robotics';
       el('machineLastServiceInput').value = machine?.last_service || '';
-      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = machine?.install_date || '';
-      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = machine?.software_version || '';
     }
 
     function openMachineDialog() {
@@ -850,9 +913,7 @@
         customer_id: customerId,
         machine_name: machineName,
         type: type || null,
-        last_service: lastService || null,
-        install_date: el('machineInstallDateInput')?.value.trim() || null,
-        software_version: el('machineSoftwareVersionInput')?.value || null
+        last_service: lastService || null
       };
 
       if (state.machineDialogMode === 'edit' && state.editingMachineId) {
@@ -958,15 +1019,10 @@
             if (!window.confirm(`Weet je zeker dat je ${label} wilt verwijderen? De gekoppelde servicehistorie wordt ook verwijderd.`)) return;
 
             try {
-              const savedId = state.selectedCustomerId;
               await deleteMachineAndHistory(machineId);
               await loadData();
-              state.selectedCustomerId = savedId;
-              selectCustomer(savedId);
-              safeClose('manageMachinesDialog');
-              const customer = state.enrichedCustomers.find(c => c.id === savedId);
-              if (customer) renderMachines(customer);
-              openModal('machinesDialog');
+              closeManageMachinesDialog();
+              if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
               showToast('Machine verwijderd');
             } catch (error) {
               console.error(error);
@@ -1430,7 +1486,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
-              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.install_date ? ` · Install: ${machine.install_date}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}</div>
+              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}</div>
             </div>
             <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
@@ -1469,15 +1525,8 @@
 
       safeClose('serviceDialog');
       resetServicePhotoUi();
-      const savedId = state.selectedCustomerId;
-      const customer = state.enrichedCustomers.find(c => c.id === savedId);
-      if (customer) renderMachines(customer);
-      openModal('machinesDialog');
       await loadData();
-      state.selectedCustomerId = savedId;
-      selectCustomer(savedId);
-      const updatedCustomer = state.enrichedCustomers.find(c => c.id === savedId);
-      if (updatedCustomer) renderMachines(updatedCustomer);
+      if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
       showToast(photoFile ? 'Service met foto opgeslagen' : 'Service opgeslagen');
     }
 
@@ -1542,7 +1591,7 @@
       const toggle = el('serviceRequestedToggle');
       const knob = el('serviceRequestedKnob');
       const srLabel = el('serviceRequestedLabel');
-      if (customer.derivedStatus === 'orange' || customer.derivedStatus === 'red') {
+      if (customer.derivedStatus === 'orange') {
         wrap?.classList.remove('hidden');
         const checked = !!customer.service_requested;
         toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
@@ -1666,6 +1715,176 @@
       await loadData();
     }
 
+    function roundToQuarter(minutes) {
+      return Math.ceil(minutes / 15) * 15;
+    }
+
+    function formatDuration(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return h > 0 ? `${h}u ${m}min` : `${m}min`;
+    }
+
+    function openTimeDialog(machineId) {
+      const machine = state.machines.find(m => m.id === machineId);
+      if (!machine) return;
+      state.timerMachineId = machineId;
+      el('timeDialogMachine').textContent = `${machine.machine_name || 'Onbekende machine'}${machine.type ? ` · ${machine.type}` : ''}`;
+      el('timeEngineerInput').value = '';
+      el('timeNoteInput').value = '';
+      el('timeHoursInput').value = '';
+      el('timeMinutesInput').value = '0';
+      el('timerDisplay').textContent = '00:00:00';
+      el('timerStartBtn').classList.remove('hidden');
+      el('timerStopBtn').classList.add('hidden');
+      el('timerRoundedInfo').classList.add('hidden');
+      if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+      state.timerStartTime = null;
+      openModal('timeDialog');
+    }
+
+    function openTimeRegistrationDialog() {
+      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+      if (!customer) { showToast('Selecteer eerst een klant'); return; }
+      if (!customer.machines.length) { showToast('Geen machines gevonden'); return; }
+
+      const container = el('machinesDialogList');
+      el('machinesDialogCustomer').textContent = customer.name || '-';
+      el('machinesTitleCount').textContent = `${customer.machines.length} machines`;
+
+      container.innerHTML = customer.machines.map(machine => `
+        <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
+              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}</div>
+            </div>
+            <button data-time-machine="${machine.id}" class="rounded-xl bg-brand-500 px-3 py-1 text-sm font-medium text-white transition hover:bg-brand-400">Tijd registreren</button>
+          </div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('[data-time-machine]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          safeClose('machinesDialog');
+          openTimeDialog(btn.dataset.timeMachine);
+        });
+      });
+
+      openModal('machinesDialog');
+    }
+
+    async function saveTimeRegistration() {
+      const machineId = state.timerMachineId;
+      if (!machineId) throw new Error('Geen machine geselecteerd');
+
+      const machine = state.machines.find(m => m.id === machineId);
+      const engineer = el('timeEngineerInput').value.trim();
+      if (!engineer) throw new Error('Monteur is verplicht');
+
+      let totalMinutes = 0;
+
+      if (state.timerStartTime) {
+        const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
+        totalMinutes = roundToQuarter(elapsed);
+        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+        state.timerStartTime = null;
+      } else {
+        const hours = parseInt(el('timeHoursInput').value || '0');
+        const minutes = parseInt(el('timeMinutesInput').value || '0');
+        totalMinutes = hours * 60 + minutes;
+      }
+
+      if (totalMinutes <= 0) throw new Error('Vul een geldige tijd in');
+
+      const payload = {
+        machine_id: machineId,
+        customer_id: machine?.customer_id || null,
+        engineer_name: engineer,
+        duration_minutes: totalMinutes,
+        note: el('timeNoteInput').value.trim() || null
+      };
+
+      const { error } = await state.supabase.from('time_registrations').insert(payload);
+      if (error) throw error;
+
+      safeClose('timeDialog');
+      showToast(`${formatDuration(totalMinutes)} opgeslagen`);
+    }
+
+    async function openTimeReport() {
+      const { data, error } = await state.supabase
+        .from('time_registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) { showToast('Rapport laden mislukt'); return; }
+
+      const container = el('timeReportContent');
+
+      if (!data?.length) {
+        container.innerHTML = `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-5 text-slate-400">Nog geen tijdregistraties.</div>`;
+        openModal('timeReportDialog');
+        return;
+      }
+
+      const byCustomer = new Map();
+      data.forEach(reg => {
+        const machine = state.machines.find(m => m.id === reg.machine_id);
+        const customer = state.customers.find(c => c.id === reg.customer_id);
+        const customerName = customer?.name || 'Onbekende klant';
+        const machineName = machine?.machine_name || 'Onbekende machine';
+
+        if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
+        const byMachine = byCustomer.get(customerName);
+        if (!byMachine.has(machineName)) byMachine.set(machineName, []);
+        byMachine.get(machineName).push(reg);
+      });
+
+      let html = '';
+      let grandTotal = 0;
+
+      byCustomer.forEach((machines, customerName) => {
+        let customerTotal = 0;
+        let machineHtml = '';
+
+        machines.forEach((regs, machineName) => {
+          const machineTotal = regs.reduce((sum, r) => sum + (r.duration_minutes || 0), 0);
+          customerTotal += machineTotal;
+          machineHtml += `
+            <div class="ml-4 mt-2 rounded-[18px] border border-white/8 bg-white/[0.02] p-3">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-semibold text-slate-200">${machineName}</div>
+                <div class="text-sm font-semibold text-brand-300">${formatDuration(machineTotal)}</div>
+              </div>
+              ${regs.map(r => `
+                <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                  <span>${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</span>
+                  <span>${formatDuration(r.duration_minutes || 0)} · ${formatDate(r.created_at)}</span>
+                </div>`).join('')}
+            </div>`;
+        });
+
+        grandTotal += customerTotal;
+        html += `
+          <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+            <div class="flex items-center justify-between">
+              <div class="text-lg font-semibold text-slate-100">${customerName}</div>
+              <div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div>
+            </div>
+            ${machineHtml}
+          </div>`;
+      });
+
+      html += `<div class="rounded-[22px] border border-brand-500/30 bg-brand-500/10 p-4 flex items-center justify-between">
+        <div class="font-semibold text-slate-100">Totaal alle klanten</div>
+        <div class="text-xl font-semibold text-brand-300">${formatDuration(grandTotal)}</div>
+      </div>`;
+
+      container.innerHTML = html;
+      openModal('timeReportDialog');
+    }
+
     function bindEvents() {
       document.querySelectorAll('.kpi-filter').forEach((card) => {
         card.addEventListener('click', () => {
@@ -1693,18 +1912,69 @@
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
-        const savedId = state.selectedCustomerId;
         const newValue = !customer.service_requested;
         try {
           const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
           if (error) throw error;
           await loadData();
-          selectCustomer(savedId);
+          selectCustomer(state.selectedCustomerId);
         } catch (err) {
           console.error(err);
           showToast(err?.message || 'Opslaan mislukt');
         }
       });
+
+      on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
+
+      on('openTimeReportBtn', 'click', () => openTimeReport());
+
+      on('timerStartBtn', 'click', () => {
+        state.timerStartTime = Date.now();
+        el('timerStartBtn').classList.add('hidden');
+        el('timerStopBtn').classList.remove('hidden');
+        el('timerRoundedInfo').classList.add('hidden');
+        state.timerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - state.timerStartTime) / 1000);
+          const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+          const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+          const s = String(elapsed % 60).padStart(2, '0');
+          el('timerDisplay').textContent = `${h}:${m}:${s}`;
+        }, 1000);
+      });
+
+      on('timerStopBtn', 'click', () => {
+        if (!state.timerStartTime) return;
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+        const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
+        const rounded = roundToQuarter(elapsed);
+        el('timerStopBtn').classList.add('hidden');
+        el('timerStartBtn').textContent = 'Opnieuw';
+        el('timerStartBtn').classList.remove('hidden');
+        const info = el('timerRoundedInfo');
+        info.textContent = `Afgerond op ${formatDuration(rounded)} (per 15 min)`;
+        info.classList.remove('hidden');
+        el('timeHoursInput').value = Math.floor(rounded / 60);
+        el('timeMinutesInput').value = rounded % 60;
+        state.timerStartTime = null;
+      });
+
+      on('saveTimeBtn', 'click', async () => {
+        try { await saveTimeRegistration(); }
+        catch (err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); }
+      });
+
+      on('cancelTimeBtn', 'click', () => {
+        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+        state.timerStartTime = null;
+        safeClose('timeDialog');
+      });
+
+      wireDialogClose('timeDialog', 'closeTimeBtn', () => {
+        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+        state.timerStartTime = null;
+      });
+      wireDialogClose('timeReportDialog', 'closeTimeReportBtn');
 
       on('refreshBtnTop', 'click', async () => {
         try {
