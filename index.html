@@ -1902,22 +1902,83 @@
     }
 
     function exportTimeReportPdf() {
+      const { data: regData } = { data: null };
       const content = el('timeReportContent');
       if (!content) return;
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <html><head><title>Software Uren 2026</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
-          h1 { font-size: 20px; margin-bottom: 16px; }
-          button { display: none; }
-        </style></head><body>
-        <h1>Software Uren 2026 — Van den Bos Robotics</h1>
-        ${content.innerHTML}
-        </body></html>`);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+
+      // Bouw de PDF op vanuit de huidige state data
+      state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+        if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
+
+        const byCustomer = new Map();
+        data.forEach(reg => {
+          const machine = state.machines.find(m => m.id === reg.machine_id);
+          const customer = state.customers.find(c => c.id === reg.customer_id);
+          const customerName = customer?.name || 'Onbekende klant';
+          const machineName = machine?.machine_name || 'Onbekende machine';
+          if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
+          const byMachine = byCustomer.get(customerName);
+          if (!byMachine.has(machineName)) byMachine.set(machineName, []);
+          byMachine.get(machineName).push(reg);
+        });
+
+        let grandTotal = 0;
+        let bodyHtml = '';
+
+        byCustomer.forEach((machines, customerName) => {
+          let customerTotal = 0;
+          let rows = '';
+          machines.forEach((regs, machineName) => {
+            regs.forEach(r => {
+              customerTotal += (r.duration_minutes || 0);
+              rows += `
+                <tr>
+                  <td class="machine">${machineName}</td>
+                  <td class="duration">${formatDuration(r.duration_minutes || 0)}</td>
+                  <td class="date">${formatDate(r.created_at)}</td>
+                  <td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td>
+                </tr>`;
+            });
+          });
+          grandTotal += customerTotal;
+          bodyHtml += `
+            <div class="customer-block">
+              <div class="customer-header">
+                <span class="customer-name">${customerName}</span>
+                <span class="customer-total">${formatDuration(customerTotal)}</span>
+              </div>
+              <table>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>`;
+        });
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html><head><title>Software Uren 2026</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 32px; }
+            h1 { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+            .grand-total { text-align: right; font-size: 12px; font-weight: bold; color: #1978f5; margin-bottom: 20px; }
+            .customer-block { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+            .customer-header { display: flex; justify-content: space-between; background: #f4f4f4; padding: 8px 12px; font-weight: bold; font-size: 12px; }
+            .customer-total { color: #1978f5; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 6px 12px; border-top: 1px solid #eee; vertical-align: top; }
+            td.machine { font-weight: bold; width: 30%; }
+            td.duration { width: 12%; color: #333; }
+            td.date { width: 20%; color: #555; }
+            td.engineer { color: #555; }
+          </style></head><body>
+          <h1>Software Uren 2026 — Van den Bos Robotics</h1>
+          <div class="grand-total">Totaal alle klanten: ${formatDuration(grandTotal)}</div>
+          ${bodyHtml}
+          </body></html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+      });
     }
 
     function bindEvents() {
