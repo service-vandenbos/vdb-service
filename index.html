@@ -1530,7 +1530,7 @@
       const toggle = el('serviceRequestedToggle');
       const knob = el('serviceRequestedKnob');
       const srLabel = el('serviceRequestedLabel');
-      if (customer.derivedStatus === 'orange') {
+      if (customer.derivedStatus === 'orange' || customer.derivedStatus === 'red') {
         wrap?.classList.remove('hidden');
         const checked = !!customer.service_requested;
         toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
@@ -1681,12 +1681,13 @@
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
+        const savedId = state.selectedCustomerId;
         const newValue = !customer.service_requested;
         try {
           const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
           if (error) throw error;
           await loadData();
-          selectCustomer(state.selectedCustomerId);
+          selectCustomer(savedId);
         } catch (err) {
           console.error(err);
           showToast(err?.message || 'Opslaan mislukt');
