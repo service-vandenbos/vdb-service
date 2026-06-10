@@ -1520,7 +1520,8 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
-              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.install_date ? ` · Installatie: ${machine.install_date}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}${machine.kuka_serial ? ` · Kuka: ${machine.kuka_serial}` : ''}</div>
+              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}</div>
+              ${machine.install_date || machine.kuka_serial ? `<div class="mt-0.5 text-sm text-slate-500">${machine.install_date ? `Installatie: ${machine.install_date}` : ''}${machine.install_date && machine.kuka_serial ? ' · ' : ''}${machine.kuka_serial ? `Kuka: ${machine.kuka_serial}` : ''}</div>` : ''}
             </div>
             <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
