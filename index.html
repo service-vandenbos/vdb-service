@@ -385,7 +385,7 @@
           </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Laatste service (optioneel)</label>
+          <label class="mb-1 block text-sm text-slate-300">Laatste service</label>
           <input id="machineLastServiceInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
         </div>
         <div>
@@ -931,7 +931,7 @@
 
       const type = el('machineTypeInput').value;
       const lastService = el('machineLastServiceInput').value.trim();
-      if (!isValidServiceMonthFormat(lastService)) {
+      if (lastService && !isValidServiceMonthFormat(lastService)) {
         throw new Error('Laatste service moet in formaat MM-YYYY');
       }
 
