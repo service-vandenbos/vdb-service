@@ -199,7 +199,8 @@
         </div>
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
           <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>
-          <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Urenrapport</button>
+          <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Software Uren 2026</button>
+          <button id="deleteTimeRegistrationsBtn" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/20">Registraties verwijderen</button>
           <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
@@ -570,10 +571,13 @@
     <div class="border-b border-white/10 px-6 py-4">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold">Urenrapport</h3>
+          <h3 class="text-lg font-semibold">Software Uren 2026</h3>
           <div class="mt-1 text-sm text-slate-400">Overzicht van alle geregistreerde uren per machine per klant</div>
         </div>
-        <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        <div class="flex gap-2">
+          <button id="exportTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Exporteer als PDF</button>
+          <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        </div>
       </div>
     </div>
     <div class="px-6 py-5">
@@ -1735,6 +1739,7 @@
       el('timeHoursInput').value = '';
       el('timeMinutesInput').value = '0';
       el('timerDisplay').textContent = '00:00:00';
+      el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
       el('timerStopBtn').classList.add('hidden');
       el('timerRoundedInfo').classList.add('hidden');
@@ -1777,23 +1782,13 @@
     async function saveTimeRegistration() {
       const machineId = state.timerMachineId;
       if (!machineId) throw new Error('Geen machine geselecteerd');
-
       const machine = state.machines.find(m => m.id === machineId);
       const engineer = el('timeEngineerInput').value.trim();
       if (!engineer) throw new Error('Monteur is verplicht');
 
-      let totalMinutes = 0;
-
-      if (state.timerStartTime) {
-        const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
-        totalMinutes = roundToQuarter(elapsed);
-        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
-        state.timerStartTime = null;
-      } else {
-        const hours = parseInt(el('timeHoursInput').value || '0');
-        const minutes = parseInt(el('timeMinutesInput').value || '0');
-        totalMinutes = hours * 60 + minutes;
-      }
+      const hours = parseInt(el('timeHoursInput').value || '0');
+      const minutes = parseInt(el('timeMinutesInput').value || '0');
+      const totalMinutes = hours * 60 + minutes;
 
       if (totalMinutes <= 0) throw new Error('Vul een geldige tijd in');
 
@@ -1834,7 +1829,6 @@
         const customer = state.customers.find(c => c.id === reg.customer_id);
         const customerName = customer?.name || 'Onbekende klant';
         const machineName = machine?.machine_name || 'Onbekende machine';
-
         if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
         const byMachine = byCustomer.get(customerName);
         if (!byMachine.has(machineName)) byMachine.set(machineName, []);
@@ -1847,7 +1841,6 @@
       byCustomer.forEach((machines, customerName) => {
         let customerTotal = 0;
         let machineHtml = '';
-
         machines.forEach((regs, machineName) => {
           const machineTotal = regs.reduce((sum, r) => sum + (r.duration_minutes || 0), 0);
           customerTotal += machineTotal;
@@ -1864,7 +1857,6 @@
                 </div>`).join('')}
             </div>`;
         });
-
         grandTotal += customerTotal;
         html += `
           <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
@@ -1883,6 +1875,30 @@
 
       container.innerHTML = html;
       openModal('timeReportDialog');
+    }
+
+    function exportTimeReportPdf() {
+      const content = el('timeReportContent');
+      if (!content) return;
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html><head><title>Software Uren 2026</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+          h1 { font-size: 20px; margin-bottom: 16px; }
+          .klant { margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+          .klant-naam { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
+          .machine { margin-left: 16px; margin-top: 8px; border: 1px solid #eee; border-radius: 6px; padding: 8px; }
+          .machine-naam { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; }
+          .reg { font-size: 12px; color: #555; display: flex; justify-content: space-between; margin-top: 4px; }
+          .totaal { border: 2px solid #2f97ff; border-radius: 8px; padding: 12px; margin-top: 16px; display: flex; justify-content: space-between; font-weight: bold; }
+        </style></head><body>
+        <h1>Software Uren 2026 — Van den Bos Robotics</h1>
+        ${content.innerHTML}
+        </body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
     }
 
     function bindEvents() {
@@ -1909,24 +1925,23 @@
         });
       });
 
-      on('serviceRequestedToggle', 'click', async () => {
-        const customer = state.customers.find(c => c.id === state.selectedCustomerId);
-        if (!customer) return;
-        const newValue = !customer.service_requested;
-        try {
-          const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
-          if (error) throw error;
-          await loadData();
-          selectCustomer(state.selectedCustomerId);
-        } catch (err) {
-          console.error(err);
-          showToast(err?.message || 'Opslaan mislukt');
-        }
-      });
-
       on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
 
       on('openTimeReportBtn', 'click', () => openTimeReport());
+
+      on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
+
+      on('deleteTimeRegistrationsBtn', 'click', async () => {
+        if (!window.confirm('Weet je zeker dat je ALLE tijdregistraties wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+        try {
+          const { error } = await state.supabase.from('time_registrations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          if (error) throw error;
+          showToast('Alle registraties verwijderd');
+        } catch (err) {
+          console.error(err);
+          showToast(err?.message || 'Verwijderen mislukt');
+        }
+      });
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
@@ -1975,6 +1990,21 @@
         state.timerStartTime = null;
       });
       wireDialogClose('timeReportDialog', 'closeTimeReportBtn');
+
+      on('serviceRequestedToggle', 'click', async () => {
+        const customer = state.customers.find(c => c.id === state.selectedCustomerId);
+        if (!customer) return;
+        const newValue = !customer.service_requested;
+        try {
+          const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
+          if (error) throw error;
+          await loadData();
+          selectCustomer(state.selectedCustomerId);
+        } catch (err) {
+          console.error(err);
+          showToast(err?.message || 'Opslaan mislukt');
+        }
+      });
 
       on('refreshBtnTop', 'click', async () => {
         try {
