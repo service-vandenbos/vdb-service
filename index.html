@@ -198,9 +198,7 @@
           </div>
         </div>
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
-          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>
-          <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Software Uren 2026</button>
-          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
+          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
     </header>
@@ -286,13 +284,6 @@
           <button id="openMachinesBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
             <h3 class="text-4xl font-semibold tracking-tight">Machines</h3>
             <span id="machinesTitleCount" class="text-xl text-slate-400">0 machines</span>
-          </button>
-        </div>
-
-        <div class="mt-7">
-          <button id="openTimeRegistrationBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
-            <h3 class="text-4xl font-semibold tracking-tight">Tijdregistratie Software</h3>
-            <span class="text-xl text-slate-400">Uren registreren</span>
           </button>
         </div>
       </div>
@@ -387,6 +378,19 @@
         <div>
           <label class="mb-1 block text-sm text-slate-300">Laatste service (optioneel)</label>
           <input id="machineLastServiceInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Installatiedatum</label>
+          <input id="machineInstallDateInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="04-2026" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Software versie</label>
+          <select id="machineSoftwareVersionInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+            <option value="">— Selecteer versie —</option>
+            <option value="MPV1">MPV1</option>
+            <option value="MPV2">MPV2</option>
+            <option value="MPV3">MPV3</option>
+          </select>
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
@@ -513,77 +517,6 @@
     </div>
   </dialog>
 
-  <dialog id="timeDialog" class="w-full max-w-xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
-    <div class="border-b border-white/10 px-6 py-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-semibold">Tijdregistratie</h3>
-          <div id="timeDialogMachine" class="mt-1 text-sm text-slate-400">-</div>
-        </div>
-        <button id="closeTimeBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
-      </div>
-    </div>
-    <div class="space-y-4 px-6 py-5">
-      <div>
-        <label class="mb-1 block text-sm text-slate-300">Monteur</label>
-        <input id="timeEngineerInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam monteur" />
-      </div>
-      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Timer</div>
-        <div id="timerDisplay" class="text-4xl font-semibold tracking-tight text-slate-100 mb-4">00:00:00</div>
-        <div class="flex gap-3">
-          <button id="timerStartBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white transition hover:bg-brand-400">Inchecken</button>
-          <button id="timerStopBtn" class="hidden rounded-2xl bg-status-orange px-4 py-3 font-semibold text-white transition hover:opacity-90">Uitchecken</button>
-        </div>
-        <div id="timerRoundedInfo" class="hidden mt-3 text-sm text-slate-400"></div>
-      </div>
-      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Handmatig invullen</div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="mb-1 block text-sm text-slate-300">Uren</label>
-            <input id="timeHoursInput" type="number" min="0" max="23" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm text-slate-300">Minuten (per 15)</label>
-            <select id="timeMinutesInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
-              <option value="0">0</option>
-              <option value="15">15</option>
-              <option value="30">30</option>
-              <option value="45">45</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div>
-        <label class="mb-1 block text-sm text-slate-300">Notitie</label>
-        <input id="timeNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Optionele notitie" />
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <button id="saveTimeBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
-        <button id="cancelTimeBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
-      </div>
-    </div>
-  </dialog>
-
-  <dialog id="timeReportDialog" class="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
-    <div class="border-b border-white/10 px-6 py-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <h3 class="text-lg font-semibold">Software Uren 2026</h3>
-          <div class="mt-1 text-sm text-slate-400">Overzicht van alle geregistreerde uren per machine per klant</div>
-        </div>
-        <div class="flex gap-2">
-          <button id="exportTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Exporteer als PDF</button>
-          <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
-        </div>
-      </div>
-    </div>
-    <div class="px-6 py-5">
-      <div id="timeReportContent" class="scrollbar-thin max-h-[70vh] space-y-4 overflow-auto"></div>
-    </div>
-  </dialog>
-
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
 
   <script>
@@ -614,10 +547,7 @@
       editingCustomerId: null,
       machineDialogMode: 'create',
       editingMachineId: null,
-      customersDialogMode: 'all',
-      timerInterval: null,
-      timerStartTime: null,
-      timerMachineId: null
+      customersDialogMode: 'all'
     };
 
     const el = (id) => document.getElementById(id);
@@ -846,12 +776,16 @@
       el('machineNameInput').value = '';
       if (el('machineTypeInput')) el('machineTypeInput').value = 'Robotics';
       el('machineLastServiceInput').value = '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = '';
+      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = '';
     }
 
     function fillMachineForm(machine) {
       el('machineNameInput').value = machine?.machine_name || '';
       if (el('machineTypeInput')) el('machineTypeInput').value = machine?.type || 'Robotics';
       el('machineLastServiceInput').value = machine?.last_service || '';
+      if (el('machineInstallDateInput')) el('machineInstallDateInput').value = machine?.install_date || '';
+      if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = machine?.software_version || '';
     }
 
     function openMachineDialog() {
@@ -916,7 +850,9 @@
         customer_id: customerId,
         machine_name: machineName,
         type: type || null,
-        last_service: lastService || null
+        last_service: lastService || null,
+        install_date: el('machineInstallDateInput')?.value.trim() || null,
+        software_version: el('machineSoftwareVersionInput')?.value || null
       };
 
       if (state.machineDialogMode === 'edit' && state.editingMachineId) {
@@ -1718,269 +1654,6 @@
       await loadData();
     }
 
-    function roundToQuarter(minutes) {
-      return Math.ceil(minutes / 15) * 15;
-    }
-
-    function formatDuration(minutes) {
-      const h = Math.floor(minutes / 60);
-      const m = minutes % 60;
-      return h > 0 ? `${h}u ${m}min` : `${m}min`;
-    }
-
-    function openTimeDialog(machineId) {
-      const machine = state.machines.find(m => m.id === machineId);
-      if (!machine) return;
-      state.timerMachineId = machineId;
-      el('timeDialogMachine').textContent = `${machine.machine_name || 'Onbekende machine'}${machine.type ? ` · ${machine.type}` : ''}`;
-      el('timeEngineerInput').value = '';
-      el('timeNoteInput').value = '';
-      el('timeHoursInput').value = '';
-      el('timeMinutesInput').value = '0';
-      el('timerDisplay').textContent = '00:00:00';
-      el('timerStartBtn').textContent = 'Inchecken';
-      el('timerStartBtn').classList.remove('hidden');
-      el('timerStopBtn').classList.add('hidden');
-      el('timerRoundedInfo').classList.add('hidden');
-      if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
-      state.timerStartTime = null;
-      openModal('timeDialog');
-    }
-
-    function openTimeRegistrationDialog() {
-      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
-      if (!customer) { showToast('Selecteer eerst een klant'); return; }
-
-      const roboticsMachines = customer.machines.filter(m => (m.type || '').toLowerCase() === 'robotics');
-      if (!roboticsMachines.length) { showToast('Geen Robotics machines gevonden'); return; }
-
-      const container = el('machinesDialogList');
-      el('machinesDialogCustomer').textContent = customer.name || '-';
-      el('machinesTitleCount').textContent = `${roboticsMachines.length} machines`;
-
-      container.innerHTML = roboticsMachines.map(machine => `
-        <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
-              <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}</div>
-            </div>
-            <button data-time-machine="${machine.id}" class="rounded-xl bg-brand-500 px-3 py-1 text-sm font-medium text-white transition hover:bg-brand-400">Tijd registreren</button>
-          </div>
-        </div>
-      `).join('');
-
-      container.querySelectorAll('[data-time-machine]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          safeClose('machinesDialog');
-          openTimeDialog(btn.dataset.timeMachine);
-        });
-      });
-
-      openModal('machinesDialog');
-    }
-
-    async function saveTimeRegistration() {
-      const machineId = state.timerMachineId;
-      if (!machineId) throw new Error('Geen machine geselecteerd');
-      const machine = state.machines.find(m => m.id === machineId);
-      const engineer = el('timeEngineerInput').value.trim();
-      if (!engineer) throw new Error('Monteur is verplicht');
-
-      const hours = parseInt(el('timeHoursInput').value || '0');
-      const minutes = parseInt(el('timeMinutesInput').value || '0');
-      const totalMinutes = hours * 60 + minutes;
-
-      if (totalMinutes <= 0) throw new Error('Vul een geldige tijd in');
-
-      const payload = {
-        machine_id: machineId,
-        customer_id: machine?.customer_id || null,
-        engineer_name: engineer,
-        duration_minutes: totalMinutes,
-        note: el('timeNoteInput').value.trim() || null
-      };
-
-      const { error } = await state.supabase.from('time_registrations').insert(payload);
-      if (error) throw error;
-
-      safeClose('timeDialog');
-      showToast(`${formatDuration(totalMinutes)} opgeslagen`);
-    }
-
-    async function deleteTimeRegistration(regId) {
-      const { error } = await state.supabase.from('time_registrations').delete().eq('id', regId);
-      if (error) throw error;
-      await openTimeReport();
-    }
-
-    async function openTimeReport() {
-      const { data, error } = await state.supabase
-        .from('time_registrations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) { showToast('Rapport laden mislukt'); return; }
-
-      const container = el('timeReportContent');
-
-      if (!data?.length) {
-        container.innerHTML = `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-5 text-slate-400">Nog geen tijdregistraties.</div>`;
-        openModal('timeReportDialog');
-        return;
-      }
-
-      const byCustomer = new Map();
-      data.forEach(reg => {
-        const machine = state.machines.find(m => m.id === reg.machine_id);
-        const customer = state.customers.find(c => c.id === reg.customer_id);
-        const customerName = customer?.name || 'Onbekende klant';
-        const machineName = machine?.machine_name || 'Onbekende machine';
-        if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
-        const byMachine = byCustomer.get(customerName);
-        if (!byMachine.has(machineName)) byMachine.set(machineName, []);
-        byMachine.get(machineName).push(reg);
-      });
-
-      let html = '';
-      let grandTotal = 0;
-
-      byCustomer.forEach((machines, customerName) => {
-        let customerTotal = 0;
-        let machineHtml = '';
-        machines.forEach((regs, machineName) => {
-          const machineTotal = regs.reduce((sum, r) => sum + (r.duration_minutes || 0), 0);
-          customerTotal += machineTotal;
-          machineHtml += `
-            <div class="ml-4 mt-2 rounded-[18px] border border-white/8 bg-white/[0.02] p-3">
-              <div class="flex items-center justify-between">
-                <div class="text-sm font-semibold text-slate-200">${machineName}</div>
-                <div class="text-sm font-semibold text-brand-300">${formatDuration(machineTotal)}</div>
-              </div>
-              ${regs.map(r => `
-                <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
-                  <span>${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</span>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <span>${formatDuration(r.duration_minutes || 0)} · ${formatDate(r.created_at)}</span>
-                    <button data-delete-time-reg="${r.id}" class="rounded-lg border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-semibold text-red-100 transition hover:bg-red-500/25">Verwijderen</button>
-                  </div>
-                </div>`).join('')}
-            </div>`;
-        });
-        grandTotal += customerTotal;
-        html += `
-          <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
-            <div class="flex items-center justify-between">
-              <div class="text-lg font-semibold text-slate-100">${customerName}</div>
-              <div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div>
-            </div>
-            ${machineHtml}
-          </div>`;
-      });
-
-      html += `<div class="rounded-[22px] border border-brand-500/30 bg-brand-500/10 p-4 flex items-center justify-between">
-        <div class="font-semibold text-slate-100">Totaal alle klanten</div>
-        <div class="text-xl font-semibold text-brand-300">${formatDuration(grandTotal)}</div>
-      </div>`;
-
-      container.innerHTML = html;
-
-      container.querySelectorAll('[data-delete-time-reg]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!window.confirm('Weet je zeker dat je deze registratie wilt verwijderen?')) return;
-          try {
-            await deleteTimeRegistration(btn.dataset.deleteTimeReg);
-            showToast('Registratie verwijderd');
-          } catch (err) {
-            console.error(err);
-            showToast(err?.message || 'Verwijderen mislukt');
-          }
-        });
-      });
-
-      openModal('timeReportDialog');
-    }
-
-    function exportTimeReportPdf() {
-      const { data: regData } = { data: null };
-      const content = el('timeReportContent');
-      if (!content) return;
-
-      // Bouw de PDF op vanuit de huidige state data
-      state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false }).then(({ data }) => {
-        if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
-
-        const byCustomer = new Map();
-        data.forEach(reg => {
-          const machine = state.machines.find(m => m.id === reg.machine_id);
-          const customer = state.customers.find(c => c.id === reg.customer_id);
-          const customerName = customer?.name || 'Onbekende klant';
-          const machineName = machine?.machine_name || 'Onbekende machine';
-          if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
-          const byMachine = byCustomer.get(customerName);
-          if (!byMachine.has(machineName)) byMachine.set(machineName, []);
-          byMachine.get(machineName).push(reg);
-        });
-
-        let grandTotal = 0;
-        let bodyHtml = '';
-
-        byCustomer.forEach((machines, customerName) => {
-          let customerTotal = 0;
-          let rows = '';
-          machines.forEach((regs, machineName) => {
-            regs.forEach(r => {
-              customerTotal += (r.duration_minutes || 0);
-              rows += `
-                <tr>
-                  <td class="machine">${machineName}</td>
-                  <td class="duration">${formatDuration(r.duration_minutes || 0)}</td>
-                  <td class="date">${formatDate(r.created_at)}</td>
-                  <td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td>
-                </tr>`;
-            });
-          });
-          grandTotal += customerTotal;
-          bodyHtml += `
-            <div class="customer-block">
-              <div class="customer-header">
-                <span class="customer-name">${customerName}</span>
-                <span class="customer-total">${formatDuration(customerTotal)}</span>
-              </div>
-              <table>
-                <tbody>${rows}</tbody>
-              </table>
-            </div>`;
-        });
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-          <html><head><title>Software Uren 2026</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 32px; }
-            h1 { font-size: 16px; font-weight: bold; margin-bottom: 6px; }
-            .grand-total { text-align: right; font-size: 12px; font-weight: bold; color: #1978f5; margin-bottom: 20px; }
-            .customer-block { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
-            .customer-header { display: flex; justify-content: space-between; background: #f4f4f4; padding: 8px 12px; font-weight: bold; font-size: 12px; }
-            .customer-total { color: #1978f5; }
-            table { width: 100%; border-collapse: collapse; }
-            td { padding: 6px 12px; border-top: 1px solid #eee; vertical-align: top; }
-            td.machine { font-weight: bold; width: 30%; }
-            td.duration { width: 12%; color: #333; }
-            td.date { width: 20%; color: #555; }
-            td.engineer { color: #555; }
-          </style></head><body>
-          <h1>Software Uren 2026 — Van den Bos Robotics</h1>
-          <div class="grand-total">Totaal alle klanten: ${formatDuration(grandTotal)}</div>
-          ${bodyHtml}
-          </body></html>`);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
-      });
-    }
-
     function bindEvents() {
       document.querySelectorAll('.kpi-filter').forEach((card) => {
         card.addEventListener('click', () => {
@@ -2004,58 +1677,6 @@
           showMapForFilter('all');
         });
       });
-
-      on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
-      on('openTimeReportBtn', 'click', () => openTimeReport());
-      on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
-
-      on('timerStartBtn', 'click', () => {
-        state.timerStartTime = Date.now();
-        el('timerStartBtn').classList.add('hidden');
-        el('timerStopBtn').classList.remove('hidden');
-        el('timerRoundedInfo').classList.add('hidden');
-        state.timerInterval = setInterval(() => {
-          const elapsed = Math.floor((Date.now() - state.timerStartTime) / 1000);
-          const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-          const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-          const s = String(elapsed % 60).padStart(2, '0');
-          el('timerDisplay').textContent = `${h}:${m}:${s}`;
-        }, 1000);
-      });
-
-      on('timerStopBtn', 'click', () => {
-        if (!state.timerStartTime) return;
-        clearInterval(state.timerInterval);
-        state.timerInterval = null;
-        const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
-        const rounded = roundToQuarter(Math.max(1, elapsed));
-        state.timerStartTime = null;
-        el('timerStopBtn').classList.add('hidden');
-        el('timerStartBtn').textContent = 'Opnieuw';
-        el('timerStartBtn').classList.remove('hidden');
-        const info = el('timerRoundedInfo');
-        info.textContent = `Afgerond op ${formatDuration(rounded)} (per 15 min)`;
-        info.classList.remove('hidden');
-        el('timeHoursInput').value = Math.floor(rounded / 60);
-        el('timeMinutesInput').value = rounded % 60;
-      });
-
-      on('saveTimeBtn', 'click', async () => {
-        try { await saveTimeRegistration(); }
-        catch (err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); }
-      });
-
-      on('cancelTimeBtn', 'click', () => {
-        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
-        state.timerStartTime = null;
-        safeClose('timeDialog');
-      });
-
-      wireDialogClose('timeDialog', 'closeTimeBtn', () => {
-        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
-        state.timerStartTime = null;
-      });
-      wireDialogClose('timeReportDialog', 'closeTimeReportBtn');
 
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
