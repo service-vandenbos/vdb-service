@@ -200,7 +200,6 @@
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
           <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>
           <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Software Uren 2026</button>
-          <button id="deleteTimeRegistrationsBtn" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/20">Registraties verwijderen</button>
           <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
@@ -1807,6 +1806,12 @@
       showToast(`${formatDuration(totalMinutes)} opgeslagen`);
     }
 
+    async function deleteTimeRegistration(regId) {
+      const { error } = await state.supabase.from('time_registrations').delete().eq('id', regId);
+      if (error) throw error;
+      await openTimeReport();
+    }
+
     async function openTimeReport() {
       const { data, error } = await state.supabase
         .from('time_registrations')
@@ -1853,7 +1858,10 @@
               ${regs.map(r => `
                 <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
                   <span>${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</span>
-                  <span>${formatDuration(r.duration_minutes || 0)} · ${formatDate(r.created_at)}</span>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span>${formatDuration(r.duration_minutes || 0)} · ${formatDate(r.created_at)}</span>
+                    <button data-delete-time-reg="${r.id}" class="rounded-lg border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-semibold text-red-100 transition hover:bg-red-500/25">Verwijderen</button>
+                  </div>
                 </div>`).join('')}
             </div>`;
         });
@@ -1874,6 +1882,20 @@
       </div>`;
 
       container.innerHTML = html;
+
+      container.querySelectorAll('[data-delete-time-reg]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!window.confirm('Weet je zeker dat je deze registratie wilt verwijderen?')) return;
+          try {
+            await deleteTimeRegistration(btn.dataset.deleteTimeReg);
+            showToast('Registratie verwijderd');
+          } catch (err) {
+            console.error(err);
+            showToast(err?.message || 'Verwijderen mislukt');
+          }
+        });
+      });
+
       openModal('timeReportDialog');
     }
 
@@ -1886,12 +1908,7 @@
         <style>
           body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
           h1 { font-size: 20px; margin-bottom: 16px; }
-          .klant { margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
-          .klant-naam { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
-          .machine { margin-left: 16px; margin-top: 8px; border: 1px solid #eee; border-radius: 6px; padding: 8px; }
-          .machine-naam { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; }
-          .reg { font-size: 12px; color: #555; display: flex; justify-content: space-between; margin-top: 4px; }
-          .totaal { border: 2px solid #2f97ff; border-radius: 8px; padding: 12px; margin-top: 16px; display: flex; justify-content: space-between; font-weight: bold; }
+          button { display: none; }
         </style></head><body>
         <h1>Software Uren 2026 — Van den Bos Robotics</h1>
         ${content.innerHTML}
@@ -1926,22 +1943,8 @@
       });
 
       on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
-
       on('openTimeReportBtn', 'click', () => openTimeReport());
-
       on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
-
-      on('deleteTimeRegistrationsBtn', 'click', async () => {
-        if (!window.confirm('Weet je zeker dat je ALLE tijdregistraties wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
-        try {
-          const { error } = await state.supabase.from('time_registrations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-          if (error) throw error;
-          showToast('Alle registraties verwijderd');
-        } catch (err) {
-          console.error(err);
-          showToast(err?.message || 'Verwijderen mislukt');
-        }
-      });
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
