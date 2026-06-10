@@ -1041,10 +1041,15 @@
             if (!window.confirm(`Weet je zeker dat je ${label} wilt verwijderen? De gekoppelde servicehistorie wordt ook verwijderd.`)) return;
 
             try {
+              const savedId = state.selectedCustomerId;
               await deleteMachineAndHistory(machineId);
               await loadData();
-              closeManageMachinesDialog();
-              if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
+              state.selectedCustomerId = savedId;
+              selectCustomer(savedId);
+              safeClose('manageMachinesDialog');
+              const customer = state.enrichedCustomers.find(c => c.id === savedId);
+              if (customer) renderMachines(customer);
+              openModal('machinesDialog');
               showToast('Machine verwijderd');
             } catch (error) {
               console.error(error);
