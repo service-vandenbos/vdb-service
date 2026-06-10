@@ -955,12 +955,14 @@
 
       closeMachineDialog();
       const savedCustomerId = customerId;
+      const currentCustomer = state.enrichedCustomers.find(c => c.id === savedCustomerId);
+      if (currentCustomer) renderMachines(currentCustomer);
+      openModal('machinesDialog');
       await loadData();
       state.selectedCustomerId = savedCustomerId;
       selectCustomer(savedCustomerId);
       const updatedCustomer = state.enrichedCustomers.find(c => c.id === savedCustomerId);
       if (updatedCustomer) renderMachines(updatedCustomer);
-      openModal('machinesDialog');
       showToast(state.machineDialogMode === 'edit' ? 'Machine bijgewerkt' : 'Machine toegevoegd');
     }
 
