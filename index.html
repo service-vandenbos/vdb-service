@@ -1488,7 +1488,7 @@
               <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
               <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}</div>
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
+            <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button><button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
         </div>
       `).join('');
@@ -2115,6 +2115,12 @@
 
       const machinesDialog = el('machinesDialog');
       machinesDialog?.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('[data-machine-edit]');
+        if (editBtn) {
+          safeClose('machinesDialog');
+          openMachineEditDialog(editBtn.dataset.machineEdit);
+          return;
+        }
         const serviceBtn = e.target.closest('[data-machine-service]');
         if (serviceBtn) {
           safeClose('machinesDialog');
