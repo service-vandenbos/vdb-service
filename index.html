@@ -1445,8 +1445,15 @@
 
       safeClose('serviceDialog');
       resetServicePhotoUi();
+      const savedId = state.selectedCustomerId;
+      const customer = state.enrichedCustomers.find(c => c.id === savedId);
+      if (customer) renderMachines(customer);
+      openModal('machinesDialog');
       await loadData();
-      if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
+      state.selectedCustomerId = savedId;
+      selectCustomer(savedId);
+      const updatedCustomer = state.enrichedCustomers.find(c => c.id === savedId);
+      if (updatedCustomer) renderMachines(updatedCustomer);
       showToast(photoFile ? 'Service met foto opgeslagen' : 'Service opgeslagen');
     }
 
