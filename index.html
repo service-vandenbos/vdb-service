@@ -198,7 +198,9 @@
           </div>
         </div>
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
-          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
+          <button id="refreshBtnTop" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Verversen</button>
+          <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Software Uren 2026</button>
+          <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
     </header>
@@ -508,6 +510,77 @@
         <button id="manageMachinesBtnPopup" class="rounded-2xl bg-red-500 px-4 py-3 font-semibold text-white transition hover:bg-red-400">Machine verwijderen</button>
       </div>
       <div id="machinesDialogList" class="scrollbar-thin max-h-[70vh] space-y-3 overflow-auto"></div>
+    </div>
+  </dialog>
+
+  <dialog id="timeDialog" class="w-full max-w-xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Tijdregistratie</h3>
+          <div id="timeDialogMachine" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeTimeBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="space-y-4 px-6 py-5">
+      <div>
+        <label class="mb-1 block text-sm text-slate-300">Monteur</label>
+        <input id="timeEngineerInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam monteur" />
+      </div>
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Timer</div>
+        <div id="timerDisplay" class="text-4xl font-semibold tracking-tight text-slate-100 mb-4">00:00:00</div>
+        <div class="flex gap-3">
+          <button id="timerStartBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white transition hover:bg-brand-400">Inchecken</button>
+          <button id="timerStopBtn" class="hidden rounded-2xl bg-status-orange px-4 py-3 font-semibold text-white transition hover:opacity-90">Uitchecken</button>
+        </div>
+        <div id="timerRoundedInfo" class="hidden mt-3 text-sm text-slate-400"></div>
+      </div>
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Handmatig invullen</div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Uren</label>
+            <input id="timeHoursInput" type="number" min="0" max="23" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Minuten (per 15)</label>
+            <select id="timeMinutesInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+              <option value="0">0</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-sm text-slate-300">Notitie</label>
+        <input id="timeNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Optionele notitie" />
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button id="saveTimeBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
+        <button id="cancelTimeBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="timeReportDialog" class="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Software Uren 2026</h3>
+          <div class="mt-1 text-sm text-slate-400">Overzicht van alle geregistreerde uren per machine per klant</div>
+        </div>
+        <div class="flex gap-2">
+          <button id="exportTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Exporteer als PDF</button>
+          <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-5">
+      <div id="timeReportContent" class="scrollbar-thin max-h-[70vh] space-y-4 overflow-auto"></div>
     </div>
   </dialog>
 
