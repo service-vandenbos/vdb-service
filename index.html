@@ -295,6 +295,13 @@
             <span class="text-xl text-slate-400">Uren registreren</span>
           </button>
         </div>
+
+        <div class="mt-7">
+          <button id="openWerkbonBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
+            <h3 class="text-4xl font-semibold tracking-tight">Werkbon</h3>
+            <span class="text-xl text-slate-400">Aanmaken &amp; ondertekenen</span>
+          </button>
+        </div>
       </div>
     </section>
   </div>
@@ -584,6 +591,67 @@
     </div>
   </dialog>
 
+  <dialog id="werkbonDialog" class="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Werkbon</h3>
+          <div id="werkbonCustomerName" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeWerkbonBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="scrollbar-thin max-h-[85vh] overflow-auto px-6 py-5 space-y-5">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Monteur</label>
+          <input id="werkbonEngineer" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam monteur" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Datum</label>
+          <input id="werkbonDate" type="date" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Arbeidsbeschrijving</label>
+          <input id="werkbonDescription" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. Wartung" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Reistijd (uren:minuten)</label>
+          <input id="werkbonTravelTime" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="00:00" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Starttijd werk</label>
+          <input id="werkbonStartTime" type="time" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Eindtijd werk</label>
+          <input id="werkbonEndTime" type="time" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Pauze (uren:minuten)</label>
+          <input id="werkbonBreak" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="00:00" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">E-mailadres ontvanger</label>
+          <input id="werkbonEmail" type="email" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="klant@bedrijf.nl" />
+        </div>
+      </div>
+      <div>
+        <label class="mb-1 block text-sm text-slate-300">Handtekening klant</label>
+        <div class="rounded-[22px] border border-white/10 bg-white overflow-hidden" style="height:160px">
+          <canvas id="werkbonSignatureCanvas" style="width:100%;height:160px;touch-action:none;cursor:crosshair;display:block;"></canvas>
+        </div>
+        <div class="mt-2 flex gap-2">
+          <button id="werkbonClearSignature" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Wissen</button>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button id="werkbonPrintBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Exporteer als PDF</button>
+        <button id="cancelWerkbonBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
 
   <script>
@@ -614,7 +682,10 @@
       editingCustomerId: null,
       machineDialogMode: 'create',
       editingMachineId: null,
-      customersDialogMode: 'all'
+      customersDialogMode: 'all',
+      timerInterval: null,
+      timerStartTime: null,
+      timerMachineId: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -1488,7 +1559,7 @@
               <div class="text-lg font-semibold text-slate-100">${machine.machine_name || 'Onbekende machine'}</div>
               <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}</div>
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button><button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
+            <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
         </div>
       `).join('');
@@ -1525,15 +1596,8 @@
 
       safeClose('serviceDialog');
       resetServicePhotoUi();
-      const savedId = state.selectedCustomerId;
-      const customer = state.enrichedCustomers.find(c => c.id === savedId);
-      if (customer) renderMachines(customer);
-      openModal('machinesDialog');
       await loadData();
-      state.selectedCustomerId = savedId;
-      selectCustomer(savedId);
-      const updatedCustomer = state.enrichedCustomers.find(c => c.id === savedId);
-      if (updatedCustomer) renderMachines(updatedCustomer);
+      if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
       showToast(photoFile ? 'Service met foto opgeslagen' : 'Service opgeslagen');
     }
 
@@ -1598,7 +1662,7 @@
       const toggle = el('serviceRequestedToggle');
       const knob = el('serviceRequestedKnob');
       const srLabel = el('serviceRequestedLabel');
-      if (customer.derivedStatus === 'orange' || customer.derivedStatus === 'red') {
+      if (customer.derivedStatus === 'orange') {
         wrap?.classList.remove('hidden');
         const checked = !!customer.service_requested;
         toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
@@ -1771,10 +1835,7 @@
         </div>
       `).join('');
       container.querySelectorAll('[data-time-machine]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          safeClose('machinesDialog');
-          openTimeDialog(btn.dataset.timeMachine);
-        });
+        btn.addEventListener('click', () => { safeClose('machinesDialog'); openTimeDialog(btn.dataset.timeMachine); });
       });
       openModal('machinesDialog');
     }
@@ -1879,6 +1940,82 @@
       });
     }
 
+    function openWerkbonDialog() {
+      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+      if (!customer) { showToast('Selecteer eerst een klant'); return; }
+      el('werkbonCustomerName').textContent = customer.name || '-';
+      el('werkbonEngineer').value = '';
+      el('werkbonDate').value = new Date().toISOString().split('T')[0];
+      el('werkbonDescription').value = 'Wartung';
+      el('werkbonTravelTime').value = '00:00';
+      el('werkbonStartTime').value = '';
+      el('werkbonEndTime').value = '';
+      el('werkbonBreak').value = '00:00';
+      el('werkbonEmail').value = customer.email || '';
+      const canvas = el('werkbonSignatureCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth || 600;
+      canvas.height = 160;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas._sigInit = false;
+      openModal('werkbonDialog');
+      setTimeout(() => initSignatureCanvas(), 100);
+    }
+
+    function initSignatureCanvas() {
+      const canvas = el('werkbonSignatureCanvas');
+      if (!canvas || canvas._sigInit) return;
+      canvas._sigInit = true;
+      canvas.width = canvas.offsetWidth || 600;
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      let drawing = false;
+      const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return { x: (src.clientX - rect.left) * (canvas.width / rect.width), y: (src.clientY - rect.top) * (canvas.height / rect.height) };
+      };
+      canvas.addEventListener('mousedown', (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+      canvas.addEventListener('mousemove', (e) => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+      canvas.addEventListener('mouseup', () => { drawing = false; });
+      canvas.addEventListener('mouseleave', () => { drawing = false; });
+      canvas.addEventListener('touchstart', (e) => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+      canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, { passive: false });
+      canvas.addEventListener('touchend', () => { drawing = false; });
+    }
+
+    function exportWerkbonPdf() {
+      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+      if (!customer) return;
+      const engineer = el('werkbonEngineer').value.trim() || '—';
+      const date = el('werkbonDate').value || '—';
+      const description = el('werkbonDescription').value.trim() || '—';
+      const travelTime = el('werkbonTravelTime').value || '00:00';
+      const startTime = el('werkbonStartTime').value || '—';
+      const endTime = el('werkbonEndTime').value || '—';
+      const breakTime = el('werkbonBreak').value || '00:00';
+      const signatureDataUrl = el('werkbonSignatureCanvas').toDataURL('image/png');
+      const machines = customer.machines || [];
+      const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('nl-NL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+      const machineRows = machines.map(m => `<tr><td>${m.kuka_serial || '—'}</td><td>${m.machine_name || '—'}</td><td>${m.install_date || '—'}</td><td></td><td>${m.kuka_serial || '—'}</td></tr>`).join('');
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Werkbon</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.logo{font-size:18px;font-weight:bold;}.logo span{color:#1a7a3c;}.logo-sub{font-size:11px;color:#555;}.title{font-size:16px;font-weight:bold;text-decoration:underline;}.address-block{font-size:10px;color:#333;margin-top:8px;}.meta{margin:12px 0;}.meta p{margin:2px 0;}h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}.sig-block{display:flex;gap:20px;margin-top:16px;}.sig-box{flex:1;border:1px solid #ccc;padding:8px;min-height:80px;}.sig-box label{font-size:9px;color:#555;display:block;margin-bottom:4px;}img.sig{max-height:60px;}</style></head><body>
+      <div class="header"><div><div class="logo">VAN DEN <span>BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="logo" style="margin-top:4px">VAN DEN <span>BOS</span></div><div class="logo-sub">robotics</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">Arbeitsauftrag</div><div style="margin-top:12px;font-size:10px"><strong>${customer.name || '—'}</strong><br>${customer.address || ''}<br>${customer.postcode || ''} ${customer.city || ''}<br>${customer.country || ''}</div></div></div>
+      <div class="meta"><p><strong>Arbeitsauftragsnummer:</strong></p><p><strong>Kundenreferenz:</strong></p><p><strong>Arbeitsbeschreibung:</strong> ${description}</p></div>
+      <h3>Zeitregistrierung</h3>
+      <table><thead><tr><th>Tag</th><th>Name</th><th>Reisezeit</th><th>Arbeitszeit</th><th>Pause</th><th>Gesamt</th></tr></thead><tbody><tr><td>${dateFormatted}</td><td>${engineer}</td><td>${travelTime}</td><td>${startTime}<br>${endTime}</td><td>${breakTime}</td><td></td></tr><tr><td colspan="2"><strong>Endsumme</strong></td><td>${travelTime}</td><td></td><td>${breakTime}</td><td></td></tr></tbody></table>
+      <h3>Objekt Informationen</h3>
+      <table><thead><tr><th>Objektnummer</th><th>Name</th><th>Datum 1. Installation</th><th>Hersteller</th><th>Seriennr</th></tr></thead><tbody>${machineRows || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
+      <div class="footer">Der Kunde unterschreibt, dass die Arbeit abgeschlossen ist, und genehmigt die Dienstleistungen, Artikel und Stunden, die in diesem Arbeitsauftrag registriert sind.</div>
+      <div class="sig-block"><div class="sig-box"><label>Handtekening klant</label><img class="sig" src="${signatureDataUrl}" alt="handtekening" /><div style="margin-top:4px;font-size:9px">${engineer} — ${dateFormatted}</div></div></div>
+      </body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+    }
+
     function bindEvents() {
       document.querySelectorAll('.kpi-filter').forEach((card) => {
         card.addEventListener('click', () => {
@@ -1906,6 +2043,14 @@
       on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
       on('openTimeReportBtn', 'click', () => openTimeReport());
       on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
+      on('openWerkbonBtn', 'click', () => openWerkbonDialog());
+      on('werkbonClearSignature', 'click', () => {
+        const canvas = el('werkbonSignatureCanvas');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      });
+      on('werkbonPrintBtn', 'click', () => exportWerkbonPdf());
+      wireDialogClose('werkbonDialog', 'closeWerkbonBtn');
+      on('cancelWerkbonBtn', 'click', () => safeClose('werkbonDialog'));
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
@@ -1958,13 +2103,12 @@
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
-        const savedId = state.selectedCustomerId;
         const newValue = !customer.service_requested;
         try {
           const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
           if (error) throw error;
           await loadData();
-          selectCustomer(savedId);
+          selectCustomer(state.selectedCustomerId);
         } catch (err) {
           console.error(err);
           showToast(err?.message || 'Opslaan mislukt');
@@ -2115,12 +2259,6 @@
 
       const machinesDialog = el('machinesDialog');
       machinesDialog?.addEventListener('click', (e) => {
-        const editBtn = e.target.closest('[data-machine-edit]');
-        if (editBtn) {
-          safeClose('machinesDialog');
-          openMachineEditDialog(editBtn.dataset.machineEdit);
-          return;
-        }
         const serviceBtn = e.target.closest('[data-machine-service]');
         if (serviceBtn) {
           safeClose('machinesDialog');
