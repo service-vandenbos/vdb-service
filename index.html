@@ -629,6 +629,10 @@
         </div>
       </div>
       <div>
+        <label class="mb-2 block text-sm text-slate-300">Select machines for this work order</label>
+        <div id="werkbonMachineList" class="space-y-2"></div>
+      </div>
+      <div>
         <label class="mb-1 block text-sm text-slate-300">Handtekening klant</label>
         <div class="rounded-[22px] border border-white/10 bg-white overflow-hidden" style="height:160px">
           <canvas id="werkbonSignatureCanvas" style="width:100%;height:160px;touch-action:none;cursor:crosshair;display:block;"></canvas>
@@ -1943,6 +1947,17 @@
       el('werkbonEmail').value = customer.email || '';
       el('werkbonOrderNumber').value = 'Generating...';
 
+      const machineList = el('werkbonMachineList');
+      if (customer.machines && customer.machines.length) {
+        machineList.innerHTML = customer.machines.map(m => `
+          <label class="flex items-center gap-3 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 cursor-pointer hover:bg-white/[0.06]">
+            <input type="checkbox" data-werkbon-machine="${m.id}" class="h-4 w-4 rounded accent-brand-500" />
+            <span class="text-sm text-slate-200">${m.machine_name || '—'} <span class="text-slate-400">${m.kuka_serial ? '· ' + m.kuka_serial : ''}</span></span>
+          </label>`).join('');
+      } else {
+        machineList.innerHTML = `<div class="text-sm text-slate-400">No machines found for this customer.</div>`;
+      }
+
       const now = new Date();
       const dateStr = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
       try {
@@ -2002,7 +2017,9 @@
       const description = el('werkbonDescription').value.trim() || '—';
       const workHoursFormatted = el('werkbonWorkHours').value.trim() || '—';
       const signatureDataUrl = el('werkbonSignatureCanvas').toDataURL('image/png');
-      const machines = customer.machines || [];
+      const selectedMachineIds = Array.from(document.querySelectorAll('[data-werkbon-machine]:checked')).map(cb => cb.dataset.werkbonMachine);
+      const machines = (customer.machines || []).filter(m => selectedMachineIds.includes(m.id));
+      if (!machines.length) { showToast('Select at least one machine'); return; }
       const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
       const machineRows = machines.map(m => `<tr><td>${m.kuka_serial || '—'}</td><td>${m.machine_name || '—'}</td><td>${m.install_date || '—'}</td><td>VDB</td><td>${m.kuka_serial || '—'}</td></tr>`).join('');
       const printWindow = window.open('', '_blank');
