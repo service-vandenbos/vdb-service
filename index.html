@@ -604,36 +604,37 @@
     <div class="scrollbar-thin max-h-[85vh] overflow-auto px-6 py-5 space-y-5">
       <div class="grid gap-4 md:grid-cols-2">
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Monteur</label>
-          <input id="werkbonEngineer" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam monteur" />
+          <label class="mb-1 block text-sm text-slate-300">Work Order Number</label>
+          <input id="werkbonOrderNumber" readonly class="w-full rounded-2xl border border-white/10 bg-slate-800 px-4 py-3 outline-none text-slate-400 cursor-default" placeholder="Generating..." />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Datum</label>
+          <label class="mb-1 block text-sm text-slate-300">Date</label>
           <input id="werkbonDate" type="date" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Arbeidsbeschrijving</label>
-          <input id="werkbonDescription" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. Wartung" />
+          <label class="mb-1 block text-sm text-slate-300">Engineer</label>
+          <input id="werkbonEngineer" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Engineer name" />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Reistijd (uren:minuten)</label>
-          <input id="werkbonTravelTime" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="00:00" />
+          <label class="mb-1 block text-sm text-slate-300">Description</label>
+          <input id="werkbonDescription" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="e.g. Service" />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Starttijd werk</label>
-          <input id="werkbonStartTime" type="time" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
+          <label class="mb-1 block text-sm text-slate-300">Work Hours</label>
+          <input id="werkbonWorkHours" type="number" min="0" max="23" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Eindtijd werk</label>
-          <input id="werkbonEndTime" type="time" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" />
+          <label class="mb-1 block text-sm text-slate-300">Work Minutes</label>
+          <select id="werkbonWorkMinutes" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+            <option value="0">0</option>
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="45">45</option>
+          </select>
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Pauze (uren:minuten)</label>
-          <input id="werkbonBreak" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="00:00" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">E-mailadres ontvanger</label>
-          <input id="werkbonEmail" type="email" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="klant@bedrijf.nl" />
+          <label class="mb-1 block text-sm text-slate-300">Email recipient</label>
+          <input id="werkbonEmail" type="email" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="customer@company.com" />
         </div>
       </div>
       <div>
@@ -1940,18 +1941,34 @@
       });
     }
 
-    function openWerkbonDialog() {
+    async function openWerkbonDialog() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) { showToast('Selecteer eerst een klant'); return; }
       el('werkbonCustomerName').textContent = customer.name || '-';
       el('werkbonEngineer').value = '';
       el('werkbonDate').value = new Date().toISOString().split('T')[0];
-      el('werkbonDescription').value = 'Wartung';
-      el('werkbonTravelTime').value = '00:00';
-      el('werkbonStartTime').value = '';
-      el('werkbonEndTime').value = '';
-      el('werkbonBreak').value = '00:00';
+      el('werkbonDescription').value = 'Service';
+      el('werkbonWorkHours').value = '';
+      el('werkbonWorkMinutes').value = '0';
       el('werkbonEmail').value = customer.email || '';
+      el('werkbonOrderNumber').value = 'Generating...';
+
+      const now = new Date();
+      const dateStr = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+      try {
+        const { data, error } = await state.supabase.from('work_order_counter').select('*').eq('id', 1).single();
+        if (error) throw error;
+        let nextNumber = 1;
+        if (data.last_date === dateStr) {
+          nextNumber = (data.last_number || 0) + 1;
+        }
+        const orderNumber = dateStr + String(nextNumber).padStart(2, '0');
+        await state.supabase.from('work_order_counter').update({ last_number: nextNumber, last_date: dateStr }).eq('id', 1);
+        el('werkbonOrderNumber').value = orderNumber;
+      } catch (e) {
+        el('werkbonOrderNumber').value = dateStr + '01';
+      }
+
       const canvas = el('werkbonSignatureCanvas');
       const ctx = canvas.getContext('2d');
       canvas.width = canvas.offsetWidth || 600;
@@ -1989,27 +2006,27 @@
     function exportWerkbonPdf() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) return;
+      const orderNumber = el('werkbonOrderNumber').value || '—';
       const engineer = el('werkbonEngineer').value.trim() || '—';
       const date = el('werkbonDate').value || '—';
       const description = el('werkbonDescription').value.trim() || '—';
-      const travelTime = el('werkbonTravelTime').value || '00:00';
-      const startTime = el('werkbonStartTime').value || '—';
-      const endTime = el('werkbonEndTime').value || '—';
-      const breakTime = el('werkbonBreak').value || '00:00';
+      const workHours = parseInt(el('werkbonWorkHours').value || '0');
+      const workMinutes = parseInt(el('werkbonWorkMinutes').value || '0');
+      const workHoursFormatted = `${workHours}h ${workMinutes}min`;
       const signatureDataUrl = el('werkbonSignatureCanvas').toDataURL('image/png');
       const machines = customer.machines || [];
-      const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('nl-NL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-      const machineRows = machines.map(m => `<tr><td>${m.kuka_serial || '—'}</td><td>${m.machine_name || '—'}</td><td>${m.install_date || '—'}</td><td></td><td>${m.kuka_serial || '—'}</td></tr>`).join('');
+      const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+      const machineRows = machines.map(m => `<tr><td>${m.kuka_serial || '—'}</td><td>${m.machine_name || '—'}</td><td>${m.install_date || '—'}</td><td>VDB</td><td>${m.kuka_serial || '—'}</td></tr>`).join('');
       const printWindow = window.open('', '_blank');
-      printWindow.document.write(`<!DOCTYPE html><html><head><title>Werkbon</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.logo{font-size:18px;font-weight:bold;}.logo span{color:#1a7a3c;}.logo-sub{font-size:11px;color:#555;}.title{font-size:16px;font-weight:bold;text-decoration:underline;}.address-block{font-size:10px;color:#333;margin-top:8px;}.meta{margin:12px 0;}.meta p{margin:2px 0;}h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}.sig-block{display:flex;gap:20px;margin-top:16px;}.sig-box{flex:1;border:1px solid #ccc;padding:8px;min-height:80px;}.sig-box label{font-size:9px;color:#555;display:block;margin-bottom:4px;}img.sig{max-height:60px;}</style></head><body>
-      <div class="header"><div><div class="logo">VAN DEN <span>BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="logo" style="margin-top:4px">VAN DEN <span>BOS</span></div><div class="logo-sub">robotics</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">Arbeitsauftrag</div><div style="margin-top:12px;font-size:10px"><strong>${customer.name || '—'}</strong><br>${customer.address || ''}<br>${customer.postcode || ''} ${customer.city || ''}<br>${customer.country || ''}</div></div></div>
-      <div class="meta"><p><strong>Arbeitsauftragsnummer:</strong></p><p><strong>Kundenreferenz:</strong></p><p><strong>Arbeitsbeschreibung:</strong> ${description}</p></div>
-      <h3>Zeitregistrierung</h3>
-      <table><thead><tr><th>Tag</th><th>Name</th><th>Reisezeit</th><th>Arbeitszeit</th><th>Pause</th><th>Gesamt</th></tr></thead><tbody><tr><td>${dateFormatted}</td><td>${engineer}</td><td>${travelTime}</td><td>${startTime}<br>${endTime}</td><td>${breakTime}</td><td></td></tr><tr><td colspan="2"><strong>Endsumme</strong></td><td>${travelTime}</td><td></td><td>${breakTime}</td><td></td></tr></tbody></table>
-      <h3>Objekt Informationen</h3>
-      <table><thead><tr><th>Objektnummer</th><th>Name</th><th>Datum 1. Installation</th><th>Hersteller</th><th>Seriennr</th></tr></thead><tbody>${machineRows || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
-      <div class="footer">Der Kunde unterschreibt, dass die Arbeit abgeschlossen ist, und genehmigt die Dienstleistungen, Artikel und Stunden, die in diesem Arbeitsauftrag registriert sind.</div>
-      <div class="sig-block"><div class="sig-box"><label>Handtekening klant</label><img class="sig" src="${signatureDataUrl}" alt="handtekening" /><div style="margin-top:4px;font-size:9px">${engineer} — ${dateFormatted}</div></div></div>
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Work Order</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.logo{font-size:18px;font-weight:bold;}.logo span{color:#1a7a3c;}.logo-sub{font-size:11px;color:#555;}.title{font-size:16px;font-weight:bold;text-decoration:underline;}.address-block{font-size:10px;color:#333;margin-top:8px;}.meta{margin:12px 0;}.meta p{margin:2px 0;}h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}.sig-block{display:flex;gap:20px;margin-top:16px;}.sig-box{flex:1;border:1px solid #ccc;padding:8px;min-height:80px;}.sig-box label{font-size:9px;color:#555;display:block;margin-bottom:4px;}img.sig{max-height:60px;}</style></head><body>
+      <div class="header"><div><div class="logo">VAN DEN <span>BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="logo" style="margin-top:4px">VAN DEN <span>BOS</span></div><div class="logo-sub">robotics</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">Work Order</div><div style="margin-top:12px;font-size:10px"><strong>${customer.name || '—'}</strong><br>${customer.address || ''}<br>${customer.postcode || ''} ${customer.city || ''}<br>${customer.country || ''}</div></div></div>
+      <div class="meta"><p><strong>Work Order Number:</strong> ${orderNumber}</p><p><strong>Customer Reference:</strong></p><p><strong>Description:</strong> ${description}</p></div>
+      <h3>Time Registration</h3>
+      <table><thead><tr><th>Date</th><th>Engineer</th><th>Work Hours</th></tr></thead><tbody><tr><td>${dateFormatted}</td><td>${engineer}</td><td>${workHoursFormatted}</td></tr></tbody></table>
+      <h3>Machine Information</h3>
+      <table><thead><tr><th>Object Nr</th><th>Name</th><th>Installation Date</th><th>Manufacturer</th><th>Serial Nr</th></tr></thead><tbody>${machineRows || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
+      <div class="footer">The customer confirms that the work has been completed and approves the services and hours registered in this work order.</div>
+      <div class="sig-block"><div class="sig-box"><label>Customer signature</label><img class="sig" src="${signatureDataUrl}" alt="signature" /><div style="margin-top:4px;font-size:9px">${engineer} — ${dateFormatted}</div></div></div>
       </body></html>`);
       printWindow.document.close();
       printWindow.focus();
@@ -2043,7 +2060,7 @@
       on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
       on('openTimeReportBtn', 'click', () => openTimeReport());
       on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
-      on('openWerkbonBtn', 'click', () => openWerkbonDialog());
+      on('openWerkbonBtn', 'click', async () => { try { await openWerkbonDialog(); } catch(err) { console.error(err); showToast('Werkbon laden mislukt'); } });
       on('werkbonClearSignature', 'click', () => {
         const canvas = el('werkbonSignatureCanvas');
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
