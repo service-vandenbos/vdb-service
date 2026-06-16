@@ -620,17 +620,8 @@
           <input id="werkbonDescription" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="e.g. Service" />
         </div>
         <div>
-          <label class="mb-1 block text-sm text-slate-300">Work Hours</label>
-          <input id="werkbonWorkHours" type="number" min="0" max="23" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Work Minutes</label>
-          <select id="werkbonWorkMinutes" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
-            <option value="0">0</option>
-            <option value="15">15</option>
-            <option value="30">30</option>
-            <option value="45">45</option>
-          </select>
+          <label class="mb-1 block text-sm text-slate-300">Work Hours (e.g. 2.15)</label>
+          <input id="werkbonWorkHours" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="2.15" />
         </div>
         <div>
           <label class="mb-1 block text-sm text-slate-300">Email recipient</label>
@@ -1949,7 +1940,6 @@
       el('werkbonDate').value = new Date().toISOString().split('T')[0];
       el('werkbonDescription').value = 'Service';
       el('werkbonWorkHours').value = '';
-      el('werkbonWorkMinutes').value = '0';
       el('werkbonEmail').value = customer.email || '';
       el('werkbonOrderNumber').value = 'Generating...';
 
@@ -2010,9 +2000,7 @@
       const engineer = el('werkbonEngineer').value.trim() || '—';
       const date = el('werkbonDate').value || '—';
       const description = el('werkbonDescription').value.trim() || '—';
-      const workHours = parseInt(el('werkbonWorkHours').value || '0');
-      const workMinutes = parseInt(el('werkbonWorkMinutes').value || '0');
-      const workHoursFormatted = `${workHours}h ${workMinutes}min`;
+      const workHoursFormatted = el('werkbonWorkHours').value.trim() || '—';
       const signatureDataUrl = el('werkbonSignatureCanvas').toDataURL('image/png');
       const machines = customer.machines || [];
       const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
