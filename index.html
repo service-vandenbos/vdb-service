@@ -707,7 +707,9 @@
   <script>
     const STORAGE_KEY = 'vdb_dashboard_config';
     const AUTH_KEY = 'vdb_service_auth_ok';
+    const ROLE_KEY = 'vdb_service_role';
     const APP_PASSWORD = '7602KS@lmelo';
+    const FIELD_PASSWORD = '7602@VdB';
     const DEFAULT_TABLES = {
       customers: 'customers',
       machines: 'machines',
@@ -780,9 +782,21 @@
 
       if (value === APP_PASSWORD) {
         localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(ROLE_KEY, 'full');
         if (error) error.classList.add('hidden');
         if (input) input.value = '';
         hideAuthGate();
+        applyRoleVisibility();
+        return true;
+      }
+
+      if (value === FIELD_PASSWORD) {
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(ROLE_KEY, 'field');
+        if (error) error.classList.add('hidden');
+        if (input) input.value = '';
+        hideAuthGate();
+        applyRoleVisibility();
         return true;
       }
 
@@ -790,8 +804,38 @@
       return false;
     }
 
+    function getCurrentRole() {
+      return localStorage.getItem(ROLE_KEY) || 'full';
+    }
+
+    function applyRoleVisibility() {
+      const isField = getCurrentRole() === 'field';
+
+      const headerBtnIds = ['openTimeReportBtn', 'addCustomerBtn'];
+      headerBtnIds.forEach(id => el(id)?.classList.toggle('hidden', isField));
+
+      const kpiSection = document.querySelector('section.mt-6.grid.gap-5.lg\\:grid-cols-5');
+      if (kpiSection) kpiSection.classList.toggle('hidden', isField);
+
+      const statusGrid = el('customerStatus')?.closest('.mt-5.grid.gap-4.sm\\:grid-cols-2');
+      if (statusGrid) statusGrid.classList.toggle('hidden', isField);
+
+      const editRow = el('editCustomerBtn')?.closest('.mt-5.flex.flex-wrap.gap-3');
+      if (editRow) editRow.classList.toggle('hidden', isField);
+
+      const sectionButtonIds = ['openServiceHistoryBtn', 'openMachinesBtn', 'openTimeRegistrationBtn'];
+      sectionButtonIds.forEach(id => {
+        const wrap = el(id)?.closest('.mt-7');
+        if (wrap) wrap.classList.toggle('hidden', isField);
+      });
+
+      const srWrap = el('serviceRequestedWrap');
+      if (srWrap && isField) srWrap.classList.add('hidden');
+    }
+
     function doLogout() {
       localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(ROLE_KEY);
       showAuthGate();
     }
 
@@ -1727,7 +1771,7 @@
       const toggle = el('serviceRequestedToggle');
       const knob = el('serviceRequestedKnob');
       const srLabel = el('serviceRequestedLabel');
-      if (customer.derivedStatus === 'orange') {
+      if ((customer.derivedStatus === 'orange' || customer.derivedStatus === 'red') && getCurrentRole() !== 'field') {
         wrap?.classList.remove('hidden');
         const checked = !!customer.service_requested;
         toggle?.setAttribute('data-checked', checked ? 'true' : 'false');
@@ -2445,12 +2489,13 @@
       on('serviceRequestedToggle', 'click', async () => {
         const customer = state.customers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
+        const savedId = state.selectedCustomerId;
         const newValue = !customer.service_requested;
         try {
           const { error } = await state.supabase.from(state.config.customers).update({ service_requested: newValue }).eq('id', customer.id);
           if (error) throw error;
           await loadData();
-          selectCustomer(state.selectedCustomerId);
+          selectCustomer(savedId);
         } catch (err) {
           console.error(err);
           showToast(err?.message || 'Opslaan mislukt');
@@ -2639,7 +2684,7 @@
     bindEvents();
     applyStatusFilter('all');
 
-    if (isAuthenticated()) hideAuthGate();
+    if (isAuthenticated()) { hideAuthGate(); applyRoleVisibility(); }
     else showAuthGate();
 
     bootstrap().catch(err => {
