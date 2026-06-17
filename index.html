@@ -818,13 +818,9 @@
       const kpiSection = document.querySelector('section.mt-6.grid.gap-5.lg\\:grid-cols-5');
       if (kpiSection) kpiSection.classList.toggle('hidden', isField);
 
-      const statusGrid = el('customerStatus')?.closest('.mt-5.grid.gap-4.sm\\:grid-cols-2');
-      if (statusGrid) statusGrid.classList.toggle('hidden', isField);
+      el('editCustomerBtn')?.classList.toggle('hidden', isField);
 
-      const editRow = el('editCustomerBtn')?.closest('.mt-5.flex.flex-wrap.gap-3');
-      if (editRow) editRow.classList.toggle('hidden', isField);
-
-      const sectionButtonIds = ['openServiceHistoryBtn', 'openMachinesBtn', 'openTimeRegistrationBtn'];
+      const sectionButtonIds = ['openServiceHistoryBtn', 'openTimeRegistrationBtn'];
       sectionButtonIds.forEach(id => {
         const wrap = el(id)?.closest('.mt-7');
         if (wrap) wrap.classList.toggle('hidden', isField);
@@ -1668,7 +1664,7 @@
               <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}</div>
               ${machine.install_date || machine.kuka_serial ? `<div class="mt-0.5 text-sm text-slate-500">${machine.install_date ? `Installatie: ${machine.install_date}` : ''}${machine.install_date && machine.kuka_serial ? ' · ' : ''}${machine.kuka_serial ? `Kuka: ${machine.kuka_serial}` : ''}</div>` : ''}
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">              <button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button><button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
+            <div class="flex flex-wrap gap-2 justify-end">              ${getCurrentRole() !== 'field' ? `<button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button>` : ''}<button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
           </div>
         </div>
       `).join('');
