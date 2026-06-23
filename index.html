@@ -420,6 +420,10 @@
           <label class="mb-1 block text-sm text-slate-300">Kuka serienummer</label>
           <input id="machineKukaSerialInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. KR123456" />
         </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Besturingskast nr.</label>
+          <input id="machineControlCabinetInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. KST-001" />
+        </div>
       </div>
       <div class="flex flex-wrap gap-3">
         <button id="saveMachineBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
@@ -1025,6 +1029,7 @@
       if (el('machineInstallDateInput')) el('machineInstallDateInput').value = '';
       if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = '';
       if (el('machineKukaSerialInput')) el('machineKukaSerialInput').value = '';
+      if (el('machineControlCabinetInput')) el('machineControlCabinetInput').value = '';
     }
 
     function fillMachineForm(machine) {
@@ -1034,6 +1039,7 @@
       if (el('machineInstallDateInput')) el('machineInstallDateInput').value = machine?.install_date || '';
       if (el('machineSoftwareVersionInput')) el('machineSoftwareVersionInput').value = machine?.software_version || '';
       if (el('machineKukaSerialInput')) el('machineKukaSerialInput').value = machine?.kuka_serial || '';
+      if (el('machineControlCabinetInput')) el('machineControlCabinetInput').value = machine?.control_cabinet || '';
     }
 
     function openMachineDialog() {
@@ -1101,7 +1107,8 @@
         last_service: lastService || null,
         install_date: el('machineInstallDateInput')?.value.trim() || null,
         software_version: el('machineSoftwareVersionInput')?.value || null,
-        kuka_serial: el('machineKukaSerialInput')?.value.trim() || null
+        kuka_serial: el('machineKukaSerialInput')?.value.trim() || null,
+        control_cabinet: el('machineControlCabinetInput')?.value.trim() || null
       };
 
       if (state.machineDialogMode === 'edit' && state.editingMachineId) {
