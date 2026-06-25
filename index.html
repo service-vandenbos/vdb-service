@@ -2405,6 +2405,16 @@
         } else {
           const { error } = await state.supabase.from('work_orders').insert(payload);
           if (error) throw new Error('Insert: ' + error.message);
+
+          const serviceMonth = date ? `${String(new Date(date).getMonth() + 1).padStart(2, '0')}-${new Date(date).getFullYear()}` : getCurrentServiceMonth();
+          for (const machineId of selectedMachineIds) {
+            await state.supabase.from(state.config.service_events).insert({
+              machine_id: machineId,
+              service_month: serviceMonth,
+              engineer_name: engineer !== '—' ? engineer : null,
+              note: `Werkbon ${orderNumber}`
+            });
+          }
           showToast('Work order saved');
         }
       } catch(e) { console.error(e); showToast(e?.message || 'Saving failed'); return; }
