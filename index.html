@@ -2182,7 +2182,7 @@
       <h3>Parts Used</h3>
       <table><thead><tr><th>Article Nr</th><th>Description</th><th>Qty</th></tr></thead><tbody>${buildPartsRowsHtml(parsedParts, wo.other_parts) || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
       <div class="footer">The customer confirms that the work has been completed and approves the services and hours registered in this work order.</div>
-      <div class="sig-block"><div class="sig-box"><label>Customer signature</label><img class="sig" src="${wo.signature_data || ''}" alt="signature" /><div style="margin-top:4px;font-size:9px">${wo.engineer_name || '—'} — ${dateFormatted}</div></div></div>
+      <div class="sig-block"><div class="sig-box"><label>Customer signature</label><img class="sig" src="${wo.signature_data || ''}" alt="signature" /><div style="margin-top:4px;font-size:9px">${customer.name || '—'} — ${dateFormatted}</div></div></div>
       </body></html>`;
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
@@ -2441,11 +2441,10 @@
       <h3>Parts Used</h3>
       <table><thead><tr><th>Article Nr</th><th>Description</th><th>Qty</th></tr></thead><tbody>${buildPartsRowsHtml(parts, otherParts) || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
       <div class="footer">The customer confirms that the work has been completed and approves the services and hours registered in this work order.</div>
-      <div class="sig-block"><div class="sig-box"><label>Customer signature</label><img class="sig" src="${signatureDataUrl}" alt="signature" /><div style="margin-top:4px;font-size:9px">${engineer} — ${dateFormatted}</div></div></div>
+      <div class="sig-block"><div class="sig-box"><label>Customer signature</label><img class="sig" src="${signatureDataUrl}" alt="signature" /><div style="margin-top:4px;font-size:9px">${customer.name || '—'} — ${dateFormatted}</div></div></div>
       </body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
     }
 
     function bindEvents() {
