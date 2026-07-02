@@ -1914,6 +1914,10 @@
       state.selectedCustomerId = customerId;
       renderCustomerList();
       renderDetail();
+      if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = '...';
+      state.supabase.from('work_orders').select('*', { count: 'exact', head: true }).eq('customer_id', customerId).then(({ count }) => {
+        if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = count || 0;
+      });
 
       const customer = state.enrichedCustomers.find(c => c.id === customerId);
       if (customer && Number.isFinite(Number(customer.latitude)) && Number.isFinite(Number(customer.longitude))) {
