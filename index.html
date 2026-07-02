@@ -786,25 +786,20 @@
       </div>
     </div>
     <div class="px-6 py-5 space-y-4">
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Type</label>
-          <select id="tipTypeInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
-            <option value="Hotel">🏨 Hotel</option>
-            <option value="Restaurant">🍽️ Restaurant</option>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Naam</label>
-          <input id="tipNameInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Toegevoegd door</label>
-          <input id="tipAddedByInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Jouw naam" />
+      <div class="flex gap-3">
+        <button id="addHotelBtn" class="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-slate-100 hover:bg-white/15">🏨 Hotel toevoegen</button>
+        <button id="addRestaurantBtn" class="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-slate-100 hover:bg-white/15">🍽️ Restaurant toevoegen</button>
+      </div>
+      <div id="tipAddForm" class="hidden space-y-3 rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-sm font-semibold text-slate-200" id="tipAddFormTitle"></div>
+        <input id="tipNameInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam" />
+        <input id="tipAddedByInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Jouw naam" />
+        <div class="flex gap-3">
+          <button id="saveTipBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Opslaan</button>
+          <button id="cancelTipBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
         </div>
       </div>
-      <button id="saveTipBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Toevoegen</button>
-      <div id="tipsList" class="mt-2 space-y-3"></div>
+      <div id="tipsList" class="space-y-2"></div>
     </div>
   </dialog>
 
@@ -2731,6 +2726,25 @@
 
       on('openTipsBtn', 'click', async () => { try { await openTipsDialog(); } catch(err) { showToast('Laden mislukt'); } });
       wireDialogClose('tipsDialog', 'closeTipsBtn');
+
+      let currentTipType = 'Hotel';
+      on('addHotelBtn', 'click', () => {
+        currentTipType = 'Hotel';
+        el('tipAddFormTitle').textContent = '🏨 Hotel toevoegen';
+        el('tipNameInput').value = '';
+        el('tipAddedByInput').value = '';
+        el('tipAddForm').classList.remove('hidden');
+      });
+      on('addRestaurantBtn', 'click', () => {
+        currentTipType = 'Restaurant';
+        el('tipAddFormTitle').textContent = '🍽️ Restaurant toevoegen';
+        el('tipNameInput').value = '';
+        el('tipAddedByInput').value = '';
+        el('tipAddForm').classList.remove('hidden');
+      });
+      on('cancelTipBtn', 'click', () => {
+        el('tipAddForm').classList.add('hidden');
+      });
       on('saveTipBtn', 'click', async () => {
         const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
         if (!customer) return;
@@ -2738,17 +2752,14 @@
         if (!name) { showToast('Vul een naam in'); return; }
         const payload = {
           customer_id: customer.id,
-          type: el('tipTypeInput').value,
+          type: currentTipType,
           name,
-          address: null,
-          note: null,
           added_by: el('tipAddedByInput').value.trim() || null,
         };
         const { error } = await state.supabase.from('location_tips').insert(payload);
         if (error) { showToast('Fout: ' + error.message); return; }
-        el('tipNameInput').value = '';
-        el('tipAddedByInput').value = '';
-        showToast('Tip toegevoegd!');
+        el('tipAddForm').classList.add('hidden');
+        showToast('Opgeslagen!');
         await loadTips(customer.id);
       });
 
