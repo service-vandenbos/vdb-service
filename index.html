@@ -327,6 +327,13 @@
             <span class="text-xl text-slate-400">Checklists &amp; info</span>
           </button>
         </div>
+
+        <div class="mt-7">
+          <button id="openTipsBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
+            <h3 class="text-4xl font-semibold tracking-tight">Hotels &amp; Eten</h3>
+            <span id="tipsCount" class="text-xl text-slate-400">0</span>
+          </button>
+        </div>
       </div>
     </section>
   </div>
@@ -765,6 +772,47 @@
     </div>
     <div id="documentenLijst" class="px-6 py-5 space-y-3">
       <div id="documentenLoadingState" class="text-sm text-slate-400">Laden...</div>
+    </div>
+  </dialog>
+
+  <dialog id="tipsDialog" class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Hotels &amp; Eten</h3>
+          <div id="tipsDialogCustomer" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeTipsBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Type</label>
+          <select id="tipTypeInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+            <option value="Hotel">🏨 Hotel</option>
+            <option value="Restaurant">🍽️ Restaurant</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Naam</label>
+          <input id="tipNameInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam hotel of restaurant" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Adres of link</label>
+          <input id="tipAddressInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Adres of Google Maps link" />
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-slate-300">Toegevoegd door</label>
+          <input id="tipAddedByInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Jouw naam" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="mb-1 block text-sm text-slate-300">Opmerking</label>
+          <input id="tipNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. lekker steak, goede prijs-kwaliteit" />
+        </div>
+      </div>
+      <button id="saveTipBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Tip toevoegen</button>
+      <div id="tipsList" class="mt-2 space-y-3"></div>
     </div>
   </dialog>
 
@@ -1817,6 +1865,7 @@
         el('machinesDialogCustomer').textContent = '-';
         el('machinesDialogList').innerHTML = '';
         if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = '0';
+        if (el('tipsCount')) el('tipsCount').textContent = '0';
         return;
       }
 
@@ -1905,6 +1954,10 @@
       if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = '...';
       state.supabase.from('work_orders').select('*', { count: 'exact', head: true }).eq('customer_id', customerId).then(({ count }) => {
         if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = count || 0;
+      });
+      if (el('tipsCount')) el('tipsCount').textContent = '...';
+      state.supabase.from('location_tips').select('*', { count: 'exact', head: true }).eq('customer_id', customerId).then(({ count }) => {
+        if (el('tipsCount')) el('tipsCount').textContent = count || 0;
       });
 
       const customer = state.enrichedCustomers.find(c => c.id === customerId);
@@ -2642,6 +2695,73 @@
         }
       });
       wireDialogClose('documentenDialog', 'closeDocumentenBtn');
+
+      async function openTipsDialog() {
+        const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+        if (!customer) { showToast('Selecteer eerst een klant'); return; }
+        el('tipsDialogCustomer').textContent = customer.name || '-';
+        el('tipNameInput').value = '';
+        el('tipAddressInput').value = '';
+        el('tipNoteInput').value = '';
+        el('tipAddedByInput').value = '';
+        openModal('tipsDialog');
+        await loadTips(customer.id);
+      }
+
+      async function loadTips(customerId) {
+        const container = el('tipsList');
+        container.innerHTML = '<div class="text-sm text-slate-400">Laden...</div>';
+        const { data, error } = await state.supabase.from('location_tips').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
+        if (error) { container.innerHTML = '<div class="text-sm text-slate-400">Laden mislukt.</div>'; return; }
+        if (el('tipsCount')) el('tipsCount').textContent = data?.length || 0;
+        if (!data?.length) { container.innerHTML = '<div class="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-slate-400 text-sm">Nog geen tips toegevoegd.</div>'; return; }
+        container.innerHTML = data.map(tip => `
+          <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">${tip.type === 'Hotel' ? '🏨' : '🍽️'}</span>
+                  <span class="font-semibold text-slate-100">${tip.name || '—'}</span>
+                </div>
+                ${tip.address ? `<div class="mt-1 text-sm text-slate-400">${tip.address}</div>` : ''}
+                ${tip.note ? `<div class="mt-1 text-sm text-slate-300">${tip.note}</div>` : ''}
+                <div class="mt-1 text-xs text-slate-500">Toegevoegd door ${tip.added_by || '—'}</div>
+              </div>
+              <button data-delete-tip="${tip.id}" class="shrink-0 rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-100 hover:bg-red-500/25">Verwijderen</button>
+            </div>
+          </div>`).join('');
+        container.querySelectorAll('[data-delete-tip]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!window.confirm('Tip verwijderen?')) return;
+            await state.supabase.from('location_tips').delete().eq('id', btn.dataset.deleteTip);
+            await loadTips(customerId);
+          });
+        });
+      }
+
+      on('openTipsBtn', 'click', async () => { try { await openTipsDialog(); } catch(err) { showToast('Laden mislukt'); } });
+      wireDialogClose('tipsDialog', 'closeTipsBtn');
+      on('saveTipBtn', 'click', async () => {
+        const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+        if (!customer) return;
+        const name = el('tipNameInput').value.trim();
+        if (!name) { showToast('Vul een naam in'); return; }
+        const payload = {
+          customer_id: customer.id,
+          type: el('tipTypeInput').value,
+          name,
+          address: el('tipAddressInput').value.trim() || null,
+          note: el('tipNoteInput').value.trim() || null,
+          added_by: el('tipAddedByInput').value.trim() || null,
+        };
+        const { error } = await state.supabase.from('location_tips').insert(payload);
+        if (error) { showToast('Opslaan mislukt'); return; }
+        el('tipNameInput').value = '';
+        el('tipAddressInput').value = '';
+        el('tipNoteInput').value = '';
+        showToast('Tip toegevoegd!');
+        await loadTips(customer.id);
+      });
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
