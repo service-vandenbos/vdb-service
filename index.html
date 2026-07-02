@@ -2526,6 +2526,8 @@
         } else {
           const { error } = await state.supabase.from('work_orders').insert(payload);
           if (error) throw new Error('Insert: ' + error.message);
+          const { count } = await state.supabase.from('work_orders').select('*', { count: 'exact', head: true }).eq('customer_id', customer.id);
+          if (el('werkbonHistoryCount')) el('werkbonHistoryCount').textContent = count || 0;
 
           const serviceMonth = date ? `${String(new Date(date).getMonth() + 1).padStart(2, '0')}-${new Date(date).getFullYear()}` : getCurrentServiceMonth();
           for (const machineId of selectedMachineIds) {
