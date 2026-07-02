@@ -2704,7 +2704,7 @@
         const { data, error } = await state.supabase.from('location_tips').select('*').eq('customer_id', customerId).order('created_at', { ascending: false });
         if (error) { container.innerHTML = '<div class="text-sm text-slate-400">Laden mislukt.</div>'; return; }
         if (el('tipsCount')) el('tipsCount').textContent = data?.length || 0;
-        if (!data?.length) { container.innerHTML = '<div class="rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-slate-400 text-sm">Nog geen tips toegevoegd.</div>'; return; }
+        if (!data?.length) { container.innerHTML = '<div class="text-sm text-slate-500 px-1">Nog geen tips toegevoegd.</div>'; return; }
         container.innerHTML = data.map(tip => `
           <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
             <div class="flex items-start justify-between gap-3">
@@ -2747,6 +2747,7 @@
         const { error } = await state.supabase.from('location_tips').insert(payload);
         if (error) { showToast('Opslaan mislukt'); return; }
         el('tipNameInput').value = '';
+        el('tipAddedByInput').value = '';
         showToast('Tip toegevoegd!');
         await loadTips(customer.id);
       });
