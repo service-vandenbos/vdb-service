@@ -320,6 +320,13 @@
             <span id="werkbonHistoryCount" class="text-xl text-slate-400">0</span>
           </button>
         </div>
+
+        <div class="mt-7">
+          <button id="openDocumentenBtn" class="flex w-full items-center justify-between rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-left transition hover:bg-white/[0.05]">
+            <h3 class="text-4xl font-semibold tracking-tight">Documenten</h3>
+            <span class="text-xl text-slate-400">Checklists &amp; info</span>
+          </button>
+        </div>
       </div>
     </section>
   </div>
@@ -745,6 +752,118 @@
       </div>
     </div>
     <div id="werkbonBrowsePartsList" class="scrollbar-thin max-h-[70vh] overflow-auto px-6 py-5 space-y-1"></div>
+  </dialog>
+
+  <dialog id="documentenDialog" class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold">Documenten</h3>
+        <button id="closeDocumentenBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="scrollbar-thin max-h-[80vh] overflow-auto px-6 py-5 space-y-3">
+      <button id="openServiceMultipackBtn" class="flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-left transition hover:bg-white/[0.05]">
+        <div>
+          <div class="text-base font-semibold text-slate-100">Service info Multipack</div>
+          <div class="mt-1 text-sm text-slate-400">Onderhoudsinformatie · checklist per categorie</div>
+        </div>
+        <span class="text-slate-400">→</span>
+      </button>
+    </div>
+  </dialog>
+
+  <dialog id="serviceMultipackDialog" class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Service info Multipack</h3>
+          <div class="mt-1 text-sm text-slate-400">Onderhoudsinformatie Multipack</div>
+        </div>
+        <button id="closeServiceMultipackBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="scrollbar-thin max-h-[80vh] overflow-auto px-6 py-5 space-y-5">
+      <p class="text-sm text-slate-400">Tijdens het onderhoud worden periodiek onderdelen vervangen. Onderstaande punten dienen gecontroleerd en/of vervangen te worden.</p>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Algemeen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Testen bij aankomst</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Testen voor vertrek</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Smart Gripper</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Controle slijtage van de zuignappen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Zuignappen vervangen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Positie en nauwkeurigheid controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Magneetventiel controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Pneumatische componenten controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Drukregelaar op vocht controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Algehele staat controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Vacuümsysteem</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Vacuümslang op lekkage controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Vacuümslang vervangen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Vacuümfilter controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Vacuümfilter vervangen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Algehele staat controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Transportbanden</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Spanning van de transportbanden controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Tandriemen controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Zahnriemen tandriem</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Spanning van de tandriemen controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Rollagers op schade controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Staat van de bekabeling controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Staat van de Motoren controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Lineairgeleiders</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Lineairgeleiders Centreerplaat controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Lineairgeleiders Stopper Plaat controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Smering van de Lineairgeleiders</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Sensoren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Inductief sensoren controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Reflecterende sensoren controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Fotocellen controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Noodstroomcircuit</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Lichtkast controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Noodstop controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Besturingssysteem</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Schakelkast schoonblazen</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Staat van de Schakelkast controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">HMI-Bediening controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">HMI kalibreren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Functioneren van de bedieningsknoppen controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Robot</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Robot kalibreren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Schroefverbindingen vastdraaien en controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Robot-Serienummer controleren</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Schakelkast-Serienummer controleren</div>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs uppercase tracking-widest text-slate-500 pt-2">Back-up</div>
+        <div class="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-200">Back-up maken en installeren</div>
+      </div>
+    </div>
   </dialog>
 
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
@@ -2582,6 +2701,10 @@
       on('cancelWerkbonBtn', 'click', () => safeClose('werkbonDialog'));
       on('openWerkbonHistoryBtn', 'click', async () => { try { await openWerkbonHistoryDialog(); } catch(err) { console.error(err); showToast('Laden mislukt'); } });
       wireDialogClose('werkbonHistoryDialog', 'closeWerkbonHistoryBtn');
+      on('openDocumentenBtn', 'click', () => openModal('documentenDialog'));
+      wireDialogClose('documentenDialog', 'closeDocumentenBtn');
+      on('openServiceMultipackBtn', 'click', () => { safeClose('documentenDialog'); openModal('serviceMultipackDialog'); });
+      wireDialogClose('serviceMultipackDialog', 'closeServiceMultipackBtn');
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
