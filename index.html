@@ -786,7 +786,7 @@
       </div>
     </div>
     <div class="px-6 py-5 space-y-4">
-      <div class="grid gap-3 sm:grid-cols-2">
+      <div class="grid gap-3 sm:grid-cols-3">
         <div>
           <label class="mb-1 block text-sm text-slate-300">Type</label>
           <select id="tipTypeInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
@@ -796,22 +796,14 @@
         </div>
         <div>
           <label class="mb-1 block text-sm text-slate-300">Naam</label>
-          <input id="tipNameInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam hotel of restaurant" />
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-slate-300">Adres of link</label>
-          <input id="tipAddressInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Adres of Google Maps link" />
+          <input id="tipNameInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Naam" />
         </div>
         <div>
           <label class="mb-1 block text-sm text-slate-300">Toegevoegd door</label>
           <input id="tipAddedByInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Jouw naam" />
         </div>
-        <div class="sm:col-span-2">
-          <label class="mb-1 block text-sm text-slate-300">Opmerking</label>
-          <input id="tipNoteInput" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Bijv. lekker steak, goede prijs-kwaliteit" />
-        </div>
       </div>
-      <button id="saveTipBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Tip toevoegen</button>
+      <button id="saveTipBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Toevoegen</button>
       <div id="tipsList" class="mt-2 space-y-3"></div>
     </div>
   </dialog>
@@ -2701,8 +2693,6 @@
         if (!customer) { showToast('Selecteer eerst een klant'); return; }
         el('tipsDialogCustomer').textContent = customer.name || '-';
         el('tipNameInput').value = '';
-        el('tipAddressInput').value = '';
-        el('tipNoteInput').value = '';
         el('tipAddedByInput').value = '';
         openModal('tipsDialog');
         await loadTips(customer.id);
@@ -2750,15 +2740,13 @@
           customer_id: customer.id,
           type: el('tipTypeInput').value,
           name,
-          address: el('tipAddressInput').value.trim() || null,
-          note: el('tipNoteInput').value.trim() || null,
+          address: null,
+          note: null,
           added_by: el('tipAddedByInput').value.trim() || null,
         };
         const { error } = await state.supabase.from('location_tips').insert(payload);
         if (error) { showToast('Opslaan mislukt'); return; }
         el('tipNameInput').value = '';
-        el('tipAddressInput').value = '';
-        el('tipNoteInput').value = '';
         showToast('Tip toegevoegd!');
         await loadTips(customer.id);
       });
