@@ -759,18 +759,12 @@
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 id="documentenDialogTitle" class="text-lg font-semibold">Documenten</h3>
-          <div id="documentenDialogSub" class="mt-1 text-sm text-slate-400 hidden">
-            <button id="documentenTerug" class="text-brand-400 hover:text-brand-300">← Terug</button>
-          </div>
         </div>
         <button id="closeDocumentenBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
       </div>
     </div>
     <div id="documentenLijst" class="px-6 py-5 space-y-3">
       <div id="documentenLoadingState" class="text-sm text-slate-400">Laden...</div>
-    </div>
-    <div id="documentenViewer" class="hidden px-6 pb-6">
-      <iframe id="documentenIframe" src="" class="w-full rounded-[18px] border border-white/10" style="height:70vh;" title="Document"></iframe>
     </div>
   </dialog>
 
@@ -2617,10 +2611,7 @@
       wireDialogClose('werkbonHistoryDialog', 'closeWerkbonHistoryBtn');
       on('openDocumentenBtn', 'click', async () => {
         el('documentenLijst').classList.remove('hidden');
-        el('documentenViewer').classList.add('hidden');
         el('documentenDialogTitle').textContent = 'Documenten';
-        el('documentenDialogSub').classList.add('hidden');
-        el('documentenIframe').src = '';
         el('documentenLoadingState').textContent = 'Laden...';
         el('documentenLoadingState').classList.remove('hidden');
         openModal('documentenDialog');
@@ -2642,11 +2633,7 @@
             btn.className = 'doc-knop flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-left transition hover:bg-white/[0.05]';
             btn.innerHTML = `<div><div class="text-base font-semibold text-slate-100">${naam}</div><div class="mt-1 text-sm text-slate-400">${file.name}</div></div><span class="text-slate-400">→</span>`;
             btn.addEventListener('click', () => {
-              el('documentenLijst').classList.add('hidden');
-              el('documentenViewer').classList.remove('hidden');
-              el('documentenDialogTitle').textContent = naam;
-              el('documentenDialogSub').classList.remove('hidden');
-              el('documentenIframe').src = url;
+              window.open(url, '_blank');
             });
             el('documentenLijst').appendChild(btn);
           });
@@ -2655,13 +2642,6 @@
         }
       });
       wireDialogClose('documentenDialog', 'closeDocumentenBtn');
-      on('documentenTerug', 'click', () => {
-        el('documentenLijst').classList.remove('hidden');
-        el('documentenViewer').classList.add('hidden');
-        el('documentenDialogTitle').textContent = 'Documenten';
-        el('documentenDialogSub').classList.add('hidden');
-        el('documentenIframe').src = '';
-      });
 
       on('timerStartBtn', 'click', () => {
         state.timerStartTime = Date.now();
