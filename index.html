@@ -842,7 +842,8 @@
       editingWerkbonId: null,
       spareParts: [],
       werkbonSelectedParts: [],
-      werkbonPendingPart: null
+      werkbonPendingPart: null,
+      tipsCustomerId: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -2686,6 +2687,7 @@
       async function openTipsDialog() {
         const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
         if (!customer) { showToast('Selecteer eerst een klant'); return; }
+        state.tipsCustomerId = customer.id;
         el('tipsDialogCustomer').textContent = customer.name || '-';
         el('tipNameInput').value = '';
         el('tipAddedByInput').value = '';
@@ -2746,12 +2748,12 @@
         el('tipAddForm').classList.add('hidden');
       });
       on('saveTipBtn', 'click', async () => {
-        const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
-        if (!customer) return;
+        const customerId = state.tipsCustomerId;
+        if (!customerId) { showToast('Geen klant geselecteerd'); return; }
         const name = el('tipNameInput').value.trim();
         if (!name) { showToast('Vul een naam in'); return; }
         const payload = {
-          customer_id: customer.id,
+          customer_id: customerId,
           type: currentTipType,
           name,
           added_by: el('tipAddedByInput').value.trim() || null,
@@ -2760,7 +2762,7 @@
         if (error) { showToast('Fout: ' + error.message); return; }
         el('tipAddForm').classList.add('hidden');
         showToast('Opgeslagen!');
-        await loadTips(customer.id);
+        await loadTips(customerId);
       });
 
       on('timerStartBtn', 'click', () => {
