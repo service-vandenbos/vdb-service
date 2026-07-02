@@ -767,13 +767,7 @@
       </div>
     </div>
     <div id="documentenLijst" class="px-6 py-5 space-y-3">
-      <button data-doc-url="https://tbtoaeraevuygajyaggj.supabase.co/storage/v1/object/public/Documents/Service%20informatie%20MP.pdf" data-doc-naam="Service info Multipack" class="doc-knop flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-left transition hover:bg-white/[0.05]">
-        <div>
-          <div class="text-base font-semibold text-slate-100">Service info Multipack</div>
-          <div class="mt-1 text-sm text-slate-400">Onderhoudsinformatie · Multipack</div>
-        </div>
-        <span class="text-slate-400">→</span>
-      </button>
+      <div id="documentenLoadingState" class="text-sm text-slate-400">Laden...</div>
     </div>
     <div id="documentenViewer" class="hidden px-6 pb-6">
       <iframe id="documentenIframe" src="" class="w-full rounded-[18px] border border-white/10" style="height:70vh;" title="Document"></iframe>
@@ -2621,13 +2615,44 @@
       on('cancelWerkbonBtn', 'click', () => safeClose('werkbonDialog'));
       on('openWerkbonHistoryBtn', 'click', async () => { try { await openWerkbonHistoryDialog(); } catch(err) { console.error(err); showToast('Laden mislukt'); } });
       wireDialogClose('werkbonHistoryDialog', 'closeWerkbonHistoryBtn');
-      on('openDocumentenBtn', 'click', () => {
+      on('openDocumentenBtn', 'click', async () => {
         el('documentenLijst').classList.remove('hidden');
         el('documentenViewer').classList.add('hidden');
         el('documentenDialogTitle').textContent = 'Documenten';
         el('documentenDialogSub').classList.add('hidden');
         el('documentenIframe').src = '';
+        el('documentenLoadingState').textContent = 'Laden...';
+        el('documentenLoadingState').classList.remove('hidden');
         openModal('documentenDialog');
+        try {
+          const { data, error } = await state.supabase.storage.from('Documents').list('', { sortBy: { column: 'name', order: 'asc' } });
+          if (error) throw error;
+          const files = (data || []).filter(f => f.name && !f.name.startsWith('.'));
+          if (!files.length) {
+            el('documentenLoadingState').textContent = 'Geen documenten gevonden.';
+            return;
+          }
+          el('documentenLoadingState').classList.add('hidden');
+          const bestaande = el('documentenLijst').querySelectorAll('.doc-knop');
+          bestaande.forEach(b => b.remove());
+          files.forEach(file => {
+            const url = `https://tbtoaeraevuygajyaggj.supabase.co/storage/v1/object/public/Documents/${encodeURIComponent(file.name)}`;
+            const naam = file.name.replace(/\.[^/.]+$/, '');
+            const btn = document.createElement('button');
+            btn.className = 'doc-knop flex w-full items-center justify-between rounded-[22px] border border-white/8 bg-white/[0.03] px-5 py-4 text-left transition hover:bg-white/[0.05]';
+            btn.innerHTML = `<div><div class="text-base font-semibold text-slate-100">${naam}</div><div class="mt-1 text-sm text-slate-400">${file.name}</div></div><span class="text-slate-400">→</span>`;
+            btn.addEventListener('click', () => {
+              el('documentenLijst').classList.add('hidden');
+              el('documentenViewer').classList.remove('hidden');
+              el('documentenDialogTitle').textContent = naam;
+              el('documentenDialogSub').classList.remove('hidden');
+              el('documentenIframe').src = url;
+            });
+            el('documentenLijst').appendChild(btn);
+          });
+        } catch(e) {
+          el('documentenLoadingState').textContent = 'Laden mislukt.';
+        }
       });
       wireDialogClose('documentenDialog', 'closeDocumentenBtn');
       on('documentenTerug', 'click', () => {
@@ -2636,17 +2661,6 @@
         el('documentenDialogTitle').textContent = 'Documenten';
         el('documentenDialogSub').classList.add('hidden');
         el('documentenIframe').src = '';
-      });
-      document.querySelectorAll('.doc-knop').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const url = btn.dataset.docUrl;
-          const naam = btn.dataset.docNaam;
-          el('documentenLijst').classList.add('hidden');
-          el('documentenViewer').classList.remove('hidden');
-          el('documentenDialogTitle').textContent = naam;
-          el('documentenDialogSub').classList.remove('hidden');
-          el('documentenIframe').src = url;
-        });
       });
 
       on('timerStartBtn', 'click', () => {
