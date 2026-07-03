@@ -917,7 +917,8 @@
       werkbonSelectedParts: [],
       werkbonPendingPart: null,
       tipsCustomerId: null,
-      serviceFormCustomerId: null
+      serviceFormCustomerId: null,
+      serviceFormEditId: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -2704,6 +2705,7 @@
           </div>
           <div class="flex gap-2">
             <button data-pdf-sf="${form.id}" class="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-400">PDF</button>
+            <button data-edit-sf="${form.id}" class="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-white/15">Bewerken</button>
             <button data-delete-sf="${form.id}" class="rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs text-red-100 hover:bg-red-500/25">Verwijderen</button>
           </div>
         </div>`).join('');
@@ -2718,7 +2720,17 @@
           downloadServiceFormPdf(form, items || [], customer);
         });
       });
-      container.querySelectorAll('[data-delete-sf]').forEach(btn => {
+      container.querySelectorAll('[data-edit-sf]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const form = data.find(f => f.id === btn.dataset.editSf);
+          if (!form) return;
+          showToast('Formulier laden...');
+          const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
+          const { data: photos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', form.id);
+          safeClose('serviceFormsDialog');
+          await openMultipackFormForEdit(form, items || [], photos || []);
+        });
+      });
         btn.addEventListener('click', async () => {
           if (!window.confirm('Formulier verwijderen?')) return;
           await state.supabase.from('service_forms').delete().eq('id', btn.dataset.deleteSf);
@@ -2728,10 +2740,58 @@
       });
     }
 
+    async function openMultipackFormForEdit(form, items, photos) {
+      const customer = state.enrichedCustomers.find(c => c.id === form.customer_id);
+      if (!customer) return;
+      state.serviceFormCustomerId = form.customer_id;
+      state.serviceFormEditId = form.id;
+      el('sfCustomer').value = customer.name || '';
+      el('sfDate').value = form.form_date || '';
+      el('sfMachineName').value = form.machine_name || '';
+      el('sfMachineNameCustomer').value = form.machine_name_customer || '';
+      el('sfEngineer').value = form.engineer_name || '';
+      el('serviceFormCustomerLabel').textContent = customer.name || '-';
+      buildServiceFormSections();
+      el('sfGeneralRows').innerHTML = '';
+      el('sfRecommendRows').innerHTML = '';
+      addGenericRow('sfGeneralRows');
+      addGenericRow('sfRecommendRows');
+
+      // Bestaande checkboxes en commentaar invullen
+      items.forEach(item => {
+        const section = item.section;
+        const sectionDef = SF_SECTIONS.find(s => s.key === section);
+        if (!sectionDef) return;
+        const i = sectionDef.items.indexOf(item.item);
+        if (i < 0) return;
+        const get = (col) => el('serviceFormSections').querySelector(`[data-sf="${section}"][data-item="${i}"][data-col="${col}"]`);
+        if (get('check')) get('check').checked = !!item.checked;
+        if (get('adjust')) get('adjust').checked = !!item.adjusted;
+        if (get('clean')) get('clean').checked = !!item.cleaned;
+        if (get('replace')) get('replace').checked = !!item.replaced;
+        if (get('comment')) get('comment').value = item.comment || '';
+      });
+
+      // Bestaande foto's tonen
+      photos.forEach(photo => {
+        const preview = el('serviceFormSections').querySelector(`[data-sf-photo-preview="${photo.section}"]`);
+        if (!preview) return;
+        const img = document.createElement('img');
+        img.src = photo.photo_url;
+        img.className = 'h-16 w-16 rounded-lg object-cover border border-white/10';
+        img.title = 'Bestaande foto';
+        img.dataset.existingPhoto = photo.id;
+        preview.appendChild(img);
+      });
+
+      openModal('serviceFormDialog');
+    }
+
     function openMultipackForm() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) return;
       state.serviceFormCustomerId = customer.id;
+      state.serviceFormEditId = null;
       el('sfCustomer').value = customer.name || '';
       el('sfDate').value = new Date().toISOString().split('T')[0];
       el('sfMachineName').value = '';
@@ -2753,17 +2813,30 @@
       const engineer = el('sfEngineer').value.trim();
       if (!engineer) { showToast('Vul engineer name in'); return; }
 
-      const { data: formData, error: formError } = await state.supabase.from('service_forms').insert({
-        customer_id: customerId,
-        machine_id: null,
-        engineer_name: engineer,
-        form_date: el('sfDate').value,
-        machine_name: el('sfMachineName').value.trim() || null,
-        machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
-      }).select('id').single();
+      const isEdit = !!state.serviceFormEditId;
+      let formId;
 
-      if (formError) { showToast('Opslaan mislukt: ' + formError.message); return; }
-      const formId = formData.id;
+      if (isEdit) {
+        formId = state.serviceFormEditId;
+        await state.supabase.from('service_forms').update({
+          engineer_name: engineer,
+          form_date: el('sfDate').value,
+          machine_name: el('sfMachineName').value.trim() || null,
+          machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
+        }).eq('id', formId);
+        await state.supabase.from('service_form_items').delete().eq('form_id', formId);
+      } else {
+        const { data: formData, error: formError } = await state.supabase.from('service_forms').insert({
+          customer_id: customerId,
+          machine_id: null,
+          engineer_name: engineer,
+          form_date: el('sfDate').value,
+          machine_name: el('sfMachineName').value.trim() || null,
+          machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
+        }).select('id').single();
+        if (formError) { showToast('Opslaan mislukt: ' + formError.message); return; }
+        formId = formData.id;
+      }
 
       const items = [];
       SF_SECTIONS.forEach(section => {
@@ -2798,7 +2871,8 @@
       }
 
       safeClose('serviceFormDialog');
-      showToast('Service formulier opgeslagen!');
+      state.serviceFormEditId = null;
+      showToast(isEdit ? 'Formulier bijgewerkt!' : 'Service formulier opgeslagen!');
       if (el('serviceFormsCount')) {
         const { count } = await state.supabase.from('service_forms').select('*', { count: 'exact', head: true }).eq('customer_id', customerId);
         el('serviceFormsCount').textContent = count || 0;
