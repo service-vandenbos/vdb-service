@@ -803,6 +803,66 @@
     </div>
   </dialog>
 
+  <dialog id="serviceFormDialog" class="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Service Form MultiPack</h3>
+          <div id="serviceFormMachineLabel" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeServiceFormBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="scrollbar-thin max-h-[85vh] overflow-auto px-6 py-5 space-y-6">
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div><label class="mb-1 block text-sm text-slate-300">Customer</label><input id="sfCustomer" readonly class="w-full rounded-2xl border border-white/10 bg-slate-800 px-4 py-3 text-slate-400 cursor-default outline-none" /></div>
+        <div><label class="mb-1 block text-sm text-slate-300">Date</label><input id="sfDate" type="date" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" /></div>
+        <div><label class="mb-1 block text-sm text-slate-300">Machine name</label><input id="sfMachineName" readonly class="w-full rounded-2xl border border-white/10 bg-slate-800 px-4 py-3 text-slate-400 cursor-default outline-none" /></div>
+        <div><label class="mb-1 block text-sm text-slate-300">Machine name customer</label><input id="sfMachineNameCustomer" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Customer machine name" /></div>
+        <div class="sm:col-span-2"><label class="mb-1 block text-sm text-slate-300">Service engineer</label><input id="sfEngineer" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Engineer name" /></div>
+      </div>
+
+      <div id="serviceFormSections"></div>
+
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-sm font-semibold text-brand-300 mb-3">9. General maintenance</div>
+        <div class="space-y-2">
+          <div class="grid grid-cols-2 gap-2 text-xs text-slate-500 font-medium px-1"><span>Machine part</span><span>Recommendation</span></div>
+          <div id="sfGeneralRows" class="space-y-2"></div>
+          <button id="sfAddGeneralRow" type="button" class="text-sm text-brand-400 hover:text-brand-300">+ Add row</button>
+        </div>
+      </div>
+
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="text-sm font-semibold text-brand-300 mb-3">10. Recommendation for next maintenance</div>
+        <div class="space-y-2">
+          <div class="grid grid-cols-2 gap-2 text-xs text-slate-500 font-medium px-1"><span>Machine part</span><span>Recommendation</span></div>
+          <div id="sfRecommendRows" class="space-y-2"></div>
+          <button id="sfAddRecommendRow" type="button" class="text-sm text-brand-400 hover:text-brand-300">+ Add row</button>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="saveServiceFormBtn" class="rounded-2xl bg-brand-500 px-5 py-3 font-semibold text-white hover:bg-brand-400">Opslaan</button>
+        <button id="cancelServiceFormBtn" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold hover:bg-white/10">Annuleren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="serviceFormHistoryDialog" class="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Service formulieren</h3>
+          <div id="serviceFormHistoryLabel" class="mt-1 text-sm text-slate-400">-</div>
+        </div>
+        <button id="closeServiceFormHistoryBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div id="serviceFormHistoryList" class="scrollbar-thin max-h-[75vh] overflow-auto px-6 py-5 space-y-3"></div>
+  </dialog>
+
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
 
   <script>
@@ -841,7 +901,9 @@
       spareParts: [],
       werkbonSelectedParts: [],
       werkbonPendingPart: null,
-      tipsCustomerId: null
+      tipsCustomerId: null,
+      serviceFormMachineId: null,
+      serviceFormId: null
     };
 
     const el = (id) => document.getElementById(id);
@@ -1778,7 +1840,7 @@
               <div class="mt-1 text-sm text-slate-400">${machine.type || '—'}${machine.latestEvent?.service_month || machine.last_service ? ` · Laatste service: ${formatServiceMonth(machine.latestEvent?.service_month || machine.last_service)}` : ''}${machine.software_version ? ` · ${machine.software_version}` : ''}</div>
               ${machine.install_date || machine.kuka_serial || machine.control_cabinet ? `<div class="mt-0.5 text-sm text-slate-500">${machine.install_date ? `Installatie: ${machine.install_date}` : ''}${machine.install_date && machine.kuka_serial ? ' · ' : ''}${machine.kuka_serial ? `Kuka: ${machine.kuka_serial}` : ''}${(machine.install_date || machine.kuka_serial) && machine.control_cabinet ? ' · ' : ''}${machine.control_cabinet ? `Besturingskast: ${machine.control_cabinet}` : ''}</div>` : ''}
             </div>
-            <div class="flex flex-wrap gap-2 justify-end">              ${getCurrentRole() !== 'field' ? `<button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button>` : ''}<button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button>            </div>
+            <div class="flex flex-wrap gap-2 justify-end">              ${getCurrentRole() !== 'field' ? `<button data-machine-edit="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Bewerken</button>` : ''}<button data-machine-service="${machine.id}" class="rounded-xl bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/15">Service</button><button data-machine-form="${machine.id}" class="rounded-xl bg-brand-500/20 px-3 py-1 text-sm font-medium text-brand-300 transition hover:bg-brand-500/30">Formulier</button>            </div>
           </div>
         </div>
       `).join('');
@@ -2454,6 +2516,201 @@
       setTimeout(() => initSignatureCanvas(), 100);
     }
 
+    const SF_SECTIONS = [
+      { key: 'smart_gripper', title: '1. Smart gripper', items: ['Suction cups Damaged', 'Position and Accuracy', 'Solenoid Valve', 'Pneumatic Components', 'Humidity pressure regulator', 'Overall Condition'] },
+      { key: 'vacuum_system', title: '2. Vacuum System', items: ['Vacuum Hose', 'Vacuum Filter', 'Overall Condition'] },
+      { key: 'conveyor_belts', title: '3. Conveyor belts', items: ['Density Conveyor Belts', 'Damage Timing Belts', 'Density Timing Belts', 'Bearing / Bearing damage', 'Wiring Condition', 'Motors Condition'] },
+      { key: 'linear_rails', title: '4. Linear Rails', items: ['Linear Rail Centering unit', 'Linear Rail Stop plate', 'Lubrication Linear Rail'] },
+      { key: 'sensors', title: '5. Sensors', items: ['Inductive Sensors', 'Reflective Sensors', 'Photocell'] },
+      { key: 'emergency_circuit', title: '6. Emergency circuit', items: ['Operating Light Curtain', 'Operating Emergency Stop'] },
+      { key: 'electrical_control_box', title: '7. Electrical control box', items: ['Condition control-box', 'Functioning Display', 'Functioning Buttons'] },
+      { key: 'robot', title: '8. Robot', items: ['Bolt connections', 'Serial number robot', 'Serial number Electrical Control box'] },
+    ];
+
+    function buildServiceFormSections() {
+      const container = el('serviceFormSections');
+      container.innerHTML = SF_SECTIONS.map(section => `
+        <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4 space-y-3">
+          <div class="text-sm font-semibold text-brand-300">${section.title}</div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr>
+                <th class="text-left py-1 pr-3 text-slate-400 font-normal w-1/2"></th>
+                <th class="text-center py-1 px-2 text-slate-400 font-normal text-xs">Check</th>
+                <th class="text-center py-1 px-2 text-slate-400 font-normal text-xs">Adjust</th>
+                <th class="text-center py-1 px-2 text-slate-400 font-normal text-xs">Clean</th>
+                <th class="text-center py-1 px-2 text-slate-400 font-normal text-xs">Replace</th>
+                <th class="text-left py-1 pl-3 text-slate-400 font-normal text-xs">Comments</th>
+              </tr></thead>
+              <tbody>
+                ${section.items.map((item, i) => `
+                  <tr class="${i % 2 === 0 ? 'bg-white/[0.02]' : ''}">
+                    <td class="py-2 pr-3 text-slate-200 text-sm">${item}</td>
+                    <td class="text-center py-2 px-2"><input type="checkbox" data-sf="${section.key}" data-item="${i}" data-col="check" class="h-4 w-4 accent-brand-500" /></td>
+                    <td class="text-center py-2 px-2"><input type="checkbox" data-sf="${section.key}" data-item="${i}" data-col="adjust" class="h-4 w-4 accent-brand-500" /></td>
+                    <td class="text-center py-2 px-2"><input type="checkbox" data-sf="${section.key}" data-item="${i}" data-col="clean" class="h-4 w-4 accent-brand-500" /></td>
+                    <td class="text-center py-2 px-2"><input type="checkbox" data-sf="${section.key}" data-item="${i}" data-col="replace" class="h-4 w-4 accent-brand-500" /></td>
+                    <td class="py-2 pl-3"><input type="text" data-sf="${section.key}" data-item="${i}" data-col="comment" class="w-full rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs outline-none focus:border-brand-400" placeholder="Comment..." /></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div class="text-xs text-slate-500 mb-2">Photos for ${section.title.replace(/^\d+\. /, '')}</div>
+            <div class="flex items-center gap-3">
+              <label class="cursor-pointer rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                📷 Add photo
+                <input type="file" accept="image/*" multiple data-sf-photo="${section.key}" class="hidden" />
+              </label>
+              <div data-sf-photo-preview="${section.key}" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>`).join('');
+
+      container.querySelectorAll('input[type="file"]').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const section = e.target.dataset.sfPhoto;
+          const preview = container.querySelector(`[data-sf-photo-preview="${section}"]`);
+          Array.from(e.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              const img = document.createElement('img');
+              img.src = ev.target.result;
+              img.className = 'h-16 w-16 rounded-lg object-cover border border-white/10 cursor-pointer';
+              img.dataset.sfPhotoData = ev.target.result;
+              img.dataset.sfPhotoSection = section;
+              img.title = 'Click to remove';
+              img.addEventListener('click', () => img.remove());
+              preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+      });
+    }
+
+    function addGenericRow(containerId) {
+      const container = el(containerId);
+      const row = document.createElement('div');
+      row.className = 'grid grid-cols-2 gap-2';
+      row.innerHTML = `
+        <input type="text" class="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" placeholder="Machine part" />
+        <div class="flex gap-2"><input type="text" class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" placeholder="Recommendation" /><button type="button" class="text-slate-500 hover:text-red-300 text-sm px-1">✕</button></div>`;
+      row.querySelector('button').addEventListener('click', () => row.remove());
+      container.appendChild(row);
+    }
+
+    async function openServiceForm(machineId) {
+      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+      const machine = state.machines.find(m => m.id === machineId);
+      if (!customer || !machine) return;
+
+      state.serviceFormMachineId = machineId;
+      state.serviceFormId = null;
+
+      el('sfCustomer').value = customer.name || '';
+      el('sfMachineName').value = machine.machine_name || '';
+      el('sfMachineNameCustomer').value = '';
+      el('sfEngineer').value = '';
+      el('sfDate').value = new Date().toISOString().split('T')[0];
+      el('serviceFormMachineLabel').textContent = `${machine.machine_name || ''} · ${customer.name || ''}`;
+
+      buildServiceFormSections();
+      el('sfGeneralRows').innerHTML = '';
+      el('sfRecommendRows').innerHTML = '';
+      addGenericRow('sfGeneralRows');
+      addGenericRow('sfRecommendRows');
+
+      openModal('serviceFormDialog');
+    }
+
+    async function saveServiceForm() {
+      const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
+      const machineId = state.serviceFormMachineId;
+      if (!customer || !machineId) return;
+
+      const engineer = el('sfEngineer').value.trim();
+      if (!engineer) { showToast('Vul engineer name in'); return; }
+
+      const { data: formData, error: formError } = await state.supabase.from('service_forms').insert({
+        customer_id: customer.id,
+        machine_id: machineId,
+        engineer_name: engineer,
+        form_date: el('sfDate').value,
+        machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
+      }).select('id').single();
+
+      if (formError) { showToast('Opslaan mislukt: ' + formError.message); return; }
+      const formId = formData.id;
+
+      const items = [];
+      SF_SECTIONS.forEach(section => {
+        section.items.forEach((item, i) => {
+          items.push({
+            form_id: formId,
+            section: section.key,
+            item,
+            checked: !!el('serviceFormSections').querySelector(`[data-sf="${section.key}"][data-item="${i}"][data-col="check"]`)?.checked,
+            adjusted: !!el('serviceFormSections').querySelector(`[data-sf="${section.key}"][data-item="${i}"][data-col="adjust"]`)?.checked,
+            cleaned: !!el('serviceFormSections').querySelector(`[data-sf="${section.key}"][data-item="${i}"][data-col="clean"]`)?.checked,
+            replaced: !!el('serviceFormSections').querySelector(`[data-sf="${section.key}"][data-item="${i}"][data-col="replace"]`)?.checked,
+            comment: el('serviceFormSections').querySelector(`[data-sf="${section.key}"][data-item="${i}"][data-col="comment"]`)?.value.trim() || null,
+          });
+        });
+      });
+
+      await state.supabase.from('service_form_items').insert(items);
+
+      const photos = el('serviceFormSections').querySelectorAll('[data-sf-photo-data]');
+      for (const img of photos) {
+        const base64 = img.dataset.sfPhotoData;
+        const section = img.dataset.sfPhotoSection;
+        const blob = await (await fetch(base64)).blob();
+        const filename = `${formId}/${section}/${Date.now()}.jpg`;
+        const { data: uploadData } = await state.supabase.storage.from('service-photos').upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
+        if (uploadData) {
+          const { data: urlData } = state.supabase.storage.from('service-photos').getPublicUrl(filename);
+          await state.supabase.from('service_form_photos').insert({ form_id: formId, section, photo_url: urlData.publicUrl });
+        }
+      }
+
+      safeClose('serviceFormDialog');
+      showToast('Service formulier opgeslagen!');
+    }
+
+    async function openServiceFormHistory(machineId) {
+      const machine = state.machines.find(m => m.id === machineId);
+      el('serviceFormHistoryLabel').textContent = machine?.machine_name || '-';
+      const container = el('serviceFormHistoryList');
+      container.innerHTML = '<div class="text-sm text-slate-400">Laden...</div>';
+      openModal('serviceFormHistoryDialog');
+
+      const { data, error } = await state.supabase.from('service_forms').select('*').eq('machine_id', machineId).order('created_at', { ascending: false });
+      if (error || !data?.length) {
+        container.innerHTML = '<div class="text-sm text-slate-400">Geen formulieren gevonden.</div>';
+        return;
+      }
+
+      container.innerHTML = data.map(form => `
+        <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold text-slate-100">${form.form_date || '—'}</div>
+              <div class="mt-1 text-sm text-slate-400">${form.engineer_name || '—'}${form.machine_name_customer ? ' · ' + form.machine_name_customer : ''}</div>
+            </div>
+            <button data-view-form="${form.id}" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-400">Bekijken</button>
+          </div>
+        </div>`).join('');
+
+      container.querySelectorAll('[data-view-form]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const form = data.find(f => f.id === btn.dataset.viewForm);
+          window.open(`data:text/plain,Form: ${form.form_date} - ${form.engineer_name}`, '_blank');
+          showToast('PDF view komt binnenkort');
+        });
+      });
+    }
+
     async function openWerkbonDialog() {
       state.editingWerkbonId = null;
       state.werkbonSelectedParts = [];
@@ -2995,7 +3252,22 @@
           openServiceDialog(serviceBtn.dataset.machineService);
           return;
         }
+        const formBtn = e.target.closest('[data-machine-form]');
+        if (formBtn) {
+          safeClose('machinesDialog');
+          openServiceForm(formBtn.dataset.machineForm);
+          return;
+        }
       });
+
+      wireDialogClose('serviceFormDialog', 'closeServiceFormBtn');
+      on('cancelServiceFormBtn', 'click', () => safeClose('serviceFormDialog'));
+      on('saveServiceFormBtn', 'click', async () => {
+        try { await saveServiceForm(); } catch(err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); }
+      });
+      on('sfAddGeneralRow', 'click', () => addGenericRow('sfGeneralRows'));
+      on('sfAddRecommendRow', 'click', () => addGenericRow('sfRecommendRows'));
+      wireDialogClose('serviceFormHistoryDialog', 'closeServiceFormHistoryBtn');
 
       wireDialogClose('customerDialog', 'closeCustomerBtn');
       on('cancelCustomerBtn', 'click', closeCustomerDialog);
