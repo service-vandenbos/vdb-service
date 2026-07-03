@@ -884,6 +884,8 @@
     const STORAGE_KEY = 'vdb_dashboard_config';
     const AUTH_KEY = 'vdb_service_auth_ok';
     const ROLE_KEY = 'vdb_service_role';
+    const APP_PASSWORD = '7602KS@lmelo';
+    const FIELD_PASSWORD = '7602@VdB';
     const DEFAULT_TABLES = {
       customers: 'customers',
       machines: 'machines',
@@ -955,42 +957,30 @@
     async function doLogin() {
       const input = el('loginPasswordInput');
       const error = el('loginError');
-      const btn = el('loginSubmitBtn');
       const value = input?.value || '';
 
-      if (!value) {
-        if (error) error.classList.remove('hidden');
-        return false;
+      if (value === APP_PASSWORD) {
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(ROLE_KEY, 'full');
+        if (error) error.classList.add('hidden');
+        if (input) input.value = '';
+        hideAuthGate();
+        applyRoleVisibility();
+        return true;
       }
 
-      if (btn) { btn.disabled = true; btn.textContent = '...'; }
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: value })
-        });
-        const data = await res.json();
-
-        if (res.ok && data.role) {
-          localStorage.setItem(AUTH_KEY, '1');
-          localStorage.setItem(ROLE_KEY, data.role);
-          if (error) error.classList.add('hidden');
-          if (input) input.value = '';
-          hideAuthGate();
-          applyRoleVisibility();
-          return true;
-        } else {
-          if (error) error.classList.remove('hidden');
-          return false;
-        }
-      } catch(e) {
-        if (error) error.classList.remove('hidden');
-        return false;
-      } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Inloggen'; }
+      if (value === FIELD_PASSWORD) {
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(ROLE_KEY, 'field');
+        if (error) error.classList.add('hidden');
+        if (input) input.value = '';
+        hideAuthGate();
+        applyRoleVisibility();
+        return true;
       }
+
+      if (error) error.classList.remove('hidden');
+      return false;
     }
 
     function getCurrentRole() {
