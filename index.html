@@ -2621,6 +2621,66 @@
       container.appendChild(row);
     }
 
+    function downloadServiceFormPdf(form, items, customer) {
+      const sections = SF_SECTIONS.map(section => {
+        const sectionItems = items.filter(i => i.section === section.key);
+        const rows = section.items.map(itemName => {
+          const found = sectionItems.find(i => i.item === itemName) || {};
+          const checked = (col) => found[col] ? '☑' : '☐';
+          return `<tr style="background:${section.items.indexOf(itemName) % 2 === 0 ? '#f9fdf9' : '#fff'}">
+            <td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;">${itemName}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('checked')}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('adjusted')}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('cleaned')}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('replaced')}</td>
+            <td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;color:#555;">${found.comment || ''}</td>
+          </tr>`;
+        }).join('');
+        return `<div style="margin-bottom:20px;">
+          <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${section.title}</div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#e8f5e9;">
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:11px;width:40%;">Item</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Check</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Adjust</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Clean</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Replace</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:10px;">Comments</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html><html><head><title>Service Form ${form.form_date || ''}</title>
+      <style>*{box-sizing:border-box;margin:0;padding:0;}@page{margin:1cm;size:A4;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;}</style>
+      </head><body>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;">VAN DEN <span style="color:#1a7a3c;">BOS</span></div>
+          <div style="font-size:10px;color:#555;">robotics</div>
+        </div>
+        <div style="text-align:right;font-size:14px;font-weight:700;text-decoration:underline;">Service form MultiPack</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #ddd;">
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">Customer:</td><td style="padding:5px 8px;border:1px solid #ddd;">${customer?.name || '—'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">Date:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.form_date || '—'}</td></tr>
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Machine name:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name || 'MP'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Machine name customer:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name_customer || '—'}</td></tr>
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Service engineer:</td><td style="padding:5px 8px;border:1px solid #ddd;" colspan="3">${form.engineer_name || '—'}</td></tr>
+      </table>
+      ${sections}
+      </body></html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
     async function openServiceFormsDialog() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) { showToast('Selecteer eerst een klant'); return; }
@@ -2642,8 +2702,22 @@
             <div class="text-sm font-medium text-slate-200">${form.form_date || '—'} · ${form.engineer_name || '—'}</div>
             <div class="text-xs text-slate-500 mt-0.5">${form.machine_name_customer || form.machine_name || 'MultiPack'}</div>
           </div>
-          <button data-delete-sf="${form.id}" class="rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs text-red-100 hover:bg-red-500/25">Verwijderen</button>
+          <div class="flex gap-2">
+            <button data-pdf-sf="${form.id}" class="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-400">PDF</button>
+            <button data-delete-sf="${form.id}" class="rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-xs text-red-100 hover:bg-red-500/25">Verwijderen</button>
+          </div>
         </div>`).join('');
+
+      container.querySelectorAll('[data-pdf-sf]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const form = data.find(f => f.id === btn.dataset.pdfSf);
+          if (!form) return;
+          showToast('PDF laden...');
+          const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
+          const customer = state.enrichedCustomers.find(c => c.id === form.customer_id);
+          downloadServiceFormPdf(form, items || [], customer);
+        });
+      });
       container.querySelectorAll('[data-delete-sf]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!window.confirm('Formulier verwijderen?')) return;
@@ -2675,7 +2749,7 @@
 
     async function saveServiceForm() {
       const customerId = state.serviceFormCustomerId;
-      if (!customerId) return;
+      if (!customerId) { showToast('Fout: geen klant geselecteerd'); return; }
       const engineer = el('sfEngineer').value.trim();
       if (!engineer) { showToast('Vul engineer name in'); return; }
 
