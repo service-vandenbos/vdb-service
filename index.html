@@ -3021,8 +3021,9 @@
     bindEvents();
     applyStatusFilter('all');
 
-    if (isAuthenticated()) { hideAuthGate(); applyRoleVisibility(); }
-    else showAuthGate();
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(ROLE_KEY);
+    showAuthGate();
 
     bootstrap().catch(err => {
       console.error(err);
