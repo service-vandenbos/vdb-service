@@ -2721,8 +2721,8 @@
           await openMultipackFormForEdit(form, items || [], photos || []);
         });
       });
+      container.querySelectorAll('[data-delete-sf]').forEach(btn => {
         btn.addEventListener('click', async () => {
-          if (!window.confirm('Formulier verwijderen?')) return;
           await state.supabase.from('service_forms').delete().eq('id', btn.dataset.deleteSf);
           await loadServiceFormsHistory(customerId);
           showToast('Verwijderd');
