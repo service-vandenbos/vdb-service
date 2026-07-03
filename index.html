@@ -927,7 +927,7 @@
       headerBtnIds.forEach(id => el(id)?.classList.toggle('hidden', isField));
 
       const kpiSection = document.querySelector('section.mt-6.grid.gap-5.lg\\:grid-cols-5');
-      if (kpiSection) kpiSection.classList.toggle('hidden', isField);
+      if (kpiSection) kpiSection.classList.remove('hidden');
 
       el('editCustomerBtn')?.classList.toggle('hidden', isField);
 
