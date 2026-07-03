@@ -2657,6 +2657,7 @@
     function openMultipackForm() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) return;
+      state.serviceFormCustomerId = customer.id;
       el('sfCustomer').value = customer.name || '';
       el('sfDate').value = new Date().toISOString().split('T')[0];
       el('sfMachineName').value = '';
