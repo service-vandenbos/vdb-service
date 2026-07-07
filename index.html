@@ -2612,7 +2612,7 @@
       container.appendChild(row);
     }
 
-    function downloadServiceFormPdf(form, items, customer) {
+    function downloadServiceFormPdf(form, items, photos, customer) {
       const sections = SF_SECTIONS.map(section => {
         const sectionItems = items.filter(i => i.section === section.key);
         const rows = section.items.map(itemName => {
@@ -2627,6 +2627,11 @@
             <td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;color:#555;">${found.comment || ''}</td>
           </tr>`;
         }).join('');
+        const sectionPhotos = (photos || []).filter(p => p.section === section.key);
+        const photosHtml = sectionPhotos.length ? `
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
+            ${sectionPhotos.map(p => `<img src="${p.photo_url}" style="width:150px;height:150px;object-fit:cover;border:1px solid #ccc;border-radius:4px;" />`).join('')}
+          </div>` : '';
         return `<div style="margin-bottom:20px;">
           <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${section.title}</div>
           <table style="width:100%;border-collapse:collapse;">
@@ -2640,6 +2645,7 @@
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
+          ${photosHtml}
         </div>`;
       }).join('');
 
@@ -2706,8 +2712,9 @@
           if (!form) return;
           showToast('PDF laden...');
           const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
+          const { data: photos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', form.id);
           const customer = state.enrichedCustomers.find(c => c.id === form.customer_id);
-          downloadServiceFormPdf(form, items || [], customer);
+          downloadServiceFormPdf(form, items || [], photos || [], customer);
         });
       });
       container.querySelectorAll('[data-edit-sf]').forEach(btn => {
