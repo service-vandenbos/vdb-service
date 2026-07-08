@@ -31,7 +31,17 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <script>
+    window.APP_CONFIG = {
+      supabaseUrl: 'https://tbtoaeraevuygajyaggj.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidG9hZXJhZXZ1eWdhanlhZ2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MDUyNzksImV4cCI6MjA5MDA4MTI3OX0.D8gKf3hIwQnP8GULWgN2pINrttdR_oUc_WSK50SQl9c',
+      tables: {
+        customers: 'customers',
+        machines: 'machines',
+        service_events: 'service_events'
+      }
+    };
+  </script>
   <style>
     html, body { min-height: 100%; }
     body {
@@ -180,13 +190,17 @@
       <div class="mt-2 text-sm text-slate-400">Voer het wachtwoord in om de service-app te openen.</div>
       <div class="mt-5">
         <label class="mb-2 block text-sm text-slate-300">Wachtwoord</label>
-        <input id="loginPasswordInput" type="password" autofocus class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Wachtwoord" />
+        <input id="loginPasswordInput" type="password" autofocus autocomplete="current-password" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Wachtwoord" />
+      </div>
+      <div class="mt-4">
+        <label class="mb-2 block text-sm text-slate-300">Wachtwoord</label>
+        <input id="loginPasswordInput" type="password" autocomplete="current-password" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="Wachtwoord" />
       </div>
       <div class="mt-4 flex flex-wrap gap-3">
         <button id="loginSubmitBtn" onclick="doLogin()" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white transition hover:bg-brand-400">Inloggen</button>
       </div>
       <div id="loginError" class="mt-4 hidden rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-        Onjuist wachtwoord.
+        Onjuiste inloggegevens.
       </div>
     </div>
   </div>
@@ -882,10 +896,6 @@
 
   <script>
     const STORAGE_KEY = 'vdb_dashboard_config';
-    const AUTH_KEY = 'vdb_service_auth_ok';
-    const ROLE_KEY = 'vdb_service_role';
-    const APP_PASSWORD = '7602KS@lmelo';
-    const FIELD_PASSWORD = '7602@VdB';
     const DEFAULT_TABLES = {
       customers: 'customers',
       machines: 'machines',
@@ -895,6 +905,9 @@
     const state = {
       supabase: null,
       config: null,
+      session: null,
+      currentRole: null,
+      isAdmin: false,
       customers: [],
       machines: [],
       serviceEvents: [],
@@ -942,7 +955,7 @@
     }
 
     function isAuthenticated() {
-      return localStorage.getItem(AUTH_KEY) === '1';
+      return !!state.session;
     }
 
     function showAuthGate() {
@@ -954,37 +967,73 @@
       el('authGate')?.classList.add('hidden');
     }
 
+    async function loadCurrentUserRole() {
+      if (!state.session) {
+        state.currentRole = 'field';
+        state.isAdmin = false;
+        return;
+      }
+      const { data, error } = await state.supabase
+        .from('profiles')
+        .select('role, is_admin')
+        .eq('id', state.session.user.id)
+        .single();
+
+      if (error || !data) {
+        state.currentRole = 'field';
+        state.isAdmin = false;
+        return;
+      }
+      state.currentRole = data.role || 'field';
+      state.isAdmin = !!data.is_admin;
+    }
+
+    const KANTOOR_LOGIN = 'kantoor@vandenbosservice.nl';
+    const MONTEUR_LOGIN = 'monteur@vandenbosservice.nl';
+
     async function doLogin() {
-      const input = el('loginPasswordInput');
+      const passInput = el('loginPasswordInput');
       const error = el('loginError');
-      const value = input?.value || '';
+      const password = passInput?.value || '';
 
-      if (value === APP_PASSWORD) {
-        localStorage.setItem(AUTH_KEY, '1');
-        localStorage.setItem(ROLE_KEY, 'full');
-        if (error) error.classList.add('hidden');
-        if (input) input.value = '';
-        hideAuthGate();
-        applyRoleVisibility();
-        return true;
+      if (!password) {
+        if (error) {
+          error.textContent = 'Vul een wachtwoord in.';
+          error.classList.remove('hidden');
+        }
+        return false;
       }
 
-      if (value === FIELD_PASSWORD) {
-        localStorage.setItem(AUTH_KEY, '1');
-        localStorage.setItem(ROLE_KEY, 'field');
-        if (error) error.classList.add('hidden');
-        if (input) input.value = '';
-        hideAuthGate();
-        applyRoleVisibility();
-        return true;
+      let { data, error: authError } = await state.supabase.auth.signInWithPassword({ email: KANTOOR_LOGIN, password });
+
+      if (authError) {
+        ({ data, error: authError } = await state.supabase.auth.signInWithPassword({ email: MONTEUR_LOGIN, password }));
       }
 
-      if (error) error.classList.remove('hidden');
-      return false;
+      if (authError || !data?.session) {
+        if (error) {
+          error.textContent = 'Onjuiste inloggegevens.';
+          error.classList.remove('hidden');
+        }
+        return false;
+      }
+
+      state.session = data.session;
+      await state.supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
+      });
+      if (error) error.classList.add('hidden');
+      if (passInput) passInput.value = '';
+      hideAuthGate();
+      await loadCurrentUserRole();
+      applyRoleVisibility();
+      await loadData();
+      return true;
     }
 
     function getCurrentRole() {
-      return localStorage.getItem(ROLE_KEY) || 'full';
+      return state.currentRole || 'field';
     }
 
     function applyRoleVisibility() {
@@ -1008,9 +1057,11 @@
       if (srWrap && isField) srWrap.classList.add('hidden');
     }
 
-    function doLogout() {
-      localStorage.removeItem(AUTH_KEY);
-      localStorage.removeItem(ROLE_KEY);
+    async function doLogout() {
+      await state.supabase.auth.signOut();
+      state.session = null;
+      state.currentRole = null;
+      state.isAdmin = false;
       showAuthGate();
     }
 
@@ -2084,7 +2135,27 @@
       }
 
       state.supabase = window.supabase.createClient(state.config.supabaseUrl, state.config.supabaseAnonKey);
-      await loadData();
+
+      const { data: sessionData } = await state.supabase.auth.getSession();
+      state.session = sessionData?.session || null;
+
+      if (state.session) {
+        hideAuthGate();
+        await loadCurrentUserRole();
+        applyRoleVisibility();
+        await loadData();
+      } else {
+        showAuthGate();
+      }
+
+      state.supabase.auth.onAuthStateChange((_event, session) => {
+        state.session = session;
+        if (!session) {
+          state.currentRole = null;
+          state.isAdmin = false;
+          showAuthGate();
+        }
+      });
     }
 
     function roundToQuarter(minutes) {
@@ -3451,9 +3522,6 @@
 
     bindEvents();
     applyStatusFilter('all');
-
-    if (isAuthenticated()) { hideAuthGate(); applyRoleVisibility(); }
-    else showAuthGate();
 
     bootstrap().catch(err => {
       console.error(err);
