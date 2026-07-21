@@ -1397,6 +1397,21 @@
     }
 
     async function deleteMachineAndHistory(machineId) {
+      const { data: forms } = await state.supabase.from('service_forms').select('id').eq('machine_id', machineId);
+      const formIds = (forms || []).map(f => f.id);
+      if (formIds.length) {
+        await state.supabase.from('service_form_items').delete().in('form_id', formIds);
+        await state.supabase.from('service_form_photos').delete().in('form_id', formIds);
+        const { error: formsError } = await state.supabase.from('service_forms').delete().in('id', formIds);
+        if (formsError) throw formsError;
+      }
+
+      const { error: brakeTestsError } = await state.supabase.from('brake_tests').delete().eq('machine_id', machineId);
+      if (brakeTestsError) throw brakeTestsError;
+
+      const { error: timeRegError } = await state.supabase.from('time_registrations').delete().eq('machine_id', machineId);
+      if (timeRegError) throw timeRegError;
+
       const { error: eventsError } = await state.supabase.from(state.config.service_events).delete().eq('machine_id', machineId);
       if (eventsError) throw eventsError;
 
@@ -1482,6 +1497,16 @@
       const linkedMachines = state.machines.filter(m => m.customer_id === customer.id);
       if (linkedMachines.length) {
         showToast('Verwijder eerst alle machines van deze klant');
+        return;
+      }
+
+      const { data: linkedWorkOrders } = await state.supabase.from('work_orders').select('id').eq('customer_id', customer.id);
+      const { data: linkedTips } = await state.supabase.from('location_tips').select('id').eq('customer_id', customer.id);
+      const blockers = [];
+      if (linkedWorkOrders?.length) blockers.push(`${linkedWorkOrders.length} werkbon(nen)`);
+      if (linkedTips?.length) blockers.push(`${linkedTips.length} locatietip(s)`);
+      if (blockers.length) {
+        showToast(`Kan niet verwijderen: nog ${blockers.join(' en ')} gekoppeld aan deze klant`);
         return;
       }
 
