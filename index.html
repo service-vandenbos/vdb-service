@@ -1396,12 +1396,26 @@
       showToast(state.machineDialogMode === 'edit' ? 'Machine bijgewerkt' : 'Machine toegevoegd');
     }
 
+    async function deleteServiceFormPhotosFromStorage(formIds) {
+      const ids = Array.isArray(formIds) ? formIds : [formIds];
+      if (!ids.length) return;
+      const { data: photos, error } = await state.supabase.from('service_form_photos').select('photo_url').in('form_id', ids);
+      if (error) { console.error('Kon foto-lijst niet ophalen voor storage-opruiming:', error); return; }
+      const paths = (photos || []).map(p => p.photo_url?.split('/service-photos/')[1]).filter(Boolean);
+      if (!paths.length) return;
+      const { error: removeError } = await state.supabase.storage.from('service-photos').remove(paths);
+      if (removeError) console.error('Storage-opruiming mislukt (databaserecords zijn wel verwijderd):', removeError);
+    }
+
     async function deleteMachineAndHistory(machineId) {
       const { data: forms } = await state.supabase.from('service_forms').select('id').eq('machine_id', machineId);
       const formIds = (forms || []).map(f => f.id);
       if (formIds.length) {
-        await state.supabase.from('service_form_items').delete().in('form_id', formIds);
-        await state.supabase.from('service_form_photos').delete().in('form_id', formIds);
+        await deleteServiceFormPhotosFromStorage(formIds);
+        const { error: itemsError } = await state.supabase.from('service_form_items').delete().in('form_id', formIds);
+        if (itemsError) throw itemsError;
+        const { error: photosError } = await state.supabase.from('service_form_photos').delete().in('form_id', formIds);
+        if (photosError) throw photosError;
         const { error: formsError } = await state.supabase.from('service_forms').delete().in('id', formIds);
         if (formsError) throw formsError;
       }
@@ -2481,10 +2495,11 @@
           btn.addEventListener('click', async () => {
             if (!window.confirm('Delete this work order?')) return;
             try {
-              await state.supabase.from('work_orders').delete().eq('id', btn.dataset.woDelete);
+              const { error } = await state.supabase.from('work_orders').delete().eq('id', btn.dataset.woDelete);
+              if (error) throw error;
               showToast('Work order deleted');
               await openWerkbonHistoryDialog();
-            } catch(e) { showToast('Delete failed'); }
+            } catch(e) { console.error(e); showToast(e?.message || 'Delete failed'); }
           });
         });
       }
@@ -2546,7 +2561,8 @@
         container.querySelectorAll('[data-bt-delete]').forEach(btn => {
           btn.addEventListener('click', async () => {
             if (!window.confirm('Weet je zeker dat je deze remtest wilt verwijderen?')) return;
-            await state.supabase.from('brake_tests').delete().eq('id', btn.dataset.btDelete);
+            const { error } = await state.supabase.from('brake_tests').delete().eq('id', btn.dataset.btDelete);
+            if (error) { console.error(error); showToast(error.message || 'Verwijderen mislukt'); return; }
             showToast('Verwijderd');
             await openWerkbonHistoryDialog();
           });
@@ -2576,11 +2592,17 @@
         container.querySelectorAll('[data-sf-delete]').forEach(btn => {
           btn.addEventListener('click', async () => {
             if (!window.confirm('Weet je zeker dat je dit formulier wilt verwijderen?')) return;
-            await state.supabase.from('service_form_items').delete().eq('form_id', btn.dataset.sfDelete);
-            await state.supabase.from('service_form_photos').delete().eq('form_id', btn.dataset.sfDelete);
-            await state.supabase.from('service_forms').delete().eq('id', btn.dataset.sfDelete);
-            showToast('Verwijderd');
-            await openWerkbonHistoryDialog();
+            try {
+              await deleteServiceFormPhotosFromStorage(btn.dataset.sfDelete);
+              let { error } = await state.supabase.from('service_form_items').delete().eq('form_id', btn.dataset.sfDelete);
+              if (error) throw error;
+              ({ error } = await state.supabase.from('service_form_photos').delete().eq('form_id', btn.dataset.sfDelete));
+              if (error) throw error;
+              ({ error } = await state.supabase.from('service_forms').delete().eq('id', btn.dataset.sfDelete));
+              if (error) throw error;
+              showToast('Verwijderd');
+              await openWerkbonHistoryDialog();
+            } catch (e) { console.error(e); showToast(e?.message || 'Verwijderen mislukt'); }
           });
         });
       }
@@ -2876,7 +2898,8 @@
       container.querySelectorAll('[data-mt-delete]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!window.confirm('Weet je zeker? Machines met dit type verliezen hun checklist.')) return;
-          await state.supabase.from('machine_types').delete().eq('id', btn.dataset.mtDelete);
+          const { error } = await state.supabase.from('machine_types').delete().eq('id', btn.dataset.mtDelete);
+          if (error) { console.error(error); showToast(error.message || 'Verwijderen mislukt'); return; }
           showToast('Machinetype verwijderd');
           await openMachineTypesDialog();
         });
@@ -3283,11 +3306,17 @@
       container.querySelectorAll('[data-delete-sf]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!window.confirm('Weet je zeker dat je dit formulier wilt verwijderen?')) return;
-          await state.supabase.from('service_form_items').delete().eq('form_id', btn.dataset.deleteSf);
-          await state.supabase.from('service_form_photos').delete().eq('form_id', btn.dataset.deleteSf);
-          await state.supabase.from('service_forms').delete().eq('id', btn.dataset.deleteSf);
-          await loadServiceFormsHistory(customerId);
-          showToast('Verwijderd');
+          try {
+            await deleteServiceFormPhotosFromStorage(btn.dataset.deleteSf);
+            let { error } = await state.supabase.from('service_form_items').delete().eq('form_id', btn.dataset.deleteSf);
+            if (error) throw error;
+            ({ error } = await state.supabase.from('service_form_photos').delete().eq('form_id', btn.dataset.deleteSf));
+            if (error) throw error;
+            ({ error } = await state.supabase.from('service_forms').delete().eq('id', btn.dataset.deleteSf));
+            if (error) throw error;
+            await loadServiceFormsHistory(customerId);
+            showToast('Verwijderd');
+          } catch (e) { console.error(e); showToast(e?.message || 'Verwijderen mislukt'); }
         });
       });
     }
@@ -3590,7 +3619,7 @@
 
       if (isEdit) {
         formId = state.serviceFormEditId;
-        await state.supabase.from('service_forms').update({
+        let { error: updateFormError } = await state.supabase.from('service_forms').update({
           engineer_name: engineer,
           form_date: el('sfDate').value,
           machine_name: el('sfMachineName').value.trim() || null,
@@ -3598,7 +3627,9 @@
           general_maintenance: JSON.stringify(generalRows),
           next_maintenance_recommendation: JSON.stringify(recommendRows),
         }).eq('id', formId);
-        await state.supabase.from('service_form_items').delete().eq('form_id', formId);
+        if (updateFormError) { showToast('Opslaan mislukt: ' + updateFormError.message); return; }
+        const { error: deleteItemsError } = await state.supabase.from('service_form_items').delete().eq('form_id', formId);
+        if (deleteItemsError) { showToast('Opslaan mislukt: ' + deleteItemsError.message); return; }
       } else {
         const { data: formData, error: formError } = await state.supabase.from('service_forms').insert({
           customer_id: customerId,
@@ -3631,7 +3662,10 @@
           });
         });
       });
-      await state.supabase.from('service_form_items').insert(items);
+      if (items.length) {
+        const { error: insertItemsError } = await state.supabase.from('service_form_items').insert(items);
+        if (insertItemsError) { showToast('Opslaan mislukt: ' + insertItemsError.message); return; }
+      }
 
       const optionalSectionKeys = new Set(getSectionsForMachine(machineId).filter(s => s.optional).map(s => s.key));
       const photos = Array.from(el('serviceFormSections').querySelectorAll('[data-sf-photo-data]'))
@@ -3700,7 +3734,8 @@
           nextNumber = (data.last_number || 0) + 1;
         }
         const orderNumber = dateStr + String(nextNumber).padStart(2, '0');
-        await state.supabase.from('work_order_counter').update({ last_number: nextNumber, last_date: dateStr }).eq('id', 1);
+        const { error: counterError } = await state.supabase.from('work_order_counter').update({ last_number: nextNumber, last_date: dateStr }).eq('id', 1);
+        if (counterError) throw counterError;
         el('werkbonOrderNumber').value = orderNumber;
       } catch (e) {
         el('werkbonOrderNumber').value = dateStr + '01';
@@ -3777,12 +3812,13 @@
 
           const serviceMonth = date ? `${String(new Date(date).getMonth() + 1).padStart(2, '0')}-${new Date(date).getFullYear()}` : getCurrentServiceMonth();
           for (const machineId of selectedMachineIds) {
-            await state.supabase.from(state.config.service_events).insert({
+            const { error: serviceEventError } = await state.supabase.from(state.config.service_events).insert({
               machine_id: machineId,
               service_month: serviceMonth,
               engineer_name: engineer !== '—' ? engineer : null,
               note: `Werkbon ${orderNumber}`
             });
+            if (serviceEventError) console.error('Automatische service-registratie mislukt voor machine', machineId, serviceEventError);
           }
           showToast('Work order saved');
         }
@@ -3935,7 +3971,8 @@
         container.querySelectorAll('[data-delete-tip]').forEach(btn => {
           btn.addEventListener('click', async () => {
             if (!window.confirm('Tip verwijderen?')) return;
-            await state.supabase.from('location_tips').delete().eq('id', btn.dataset.deleteTip);
+            const { error } = await state.supabase.from('location_tips').delete().eq('id', btn.dataset.deleteTip);
+            if (error) { console.error(error); showToast(error.message || 'Verwijderen mislukt'); return; }
             await loadTips(customerId);
           });
         });
