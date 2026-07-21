@@ -1114,7 +1114,11 @@
 
     function openModal(dialogId) {
       const dialog = el(dialogId);
-      if (dialog && !dialog.open) dialog.showModal();
+      if (dialog && !dialog.open) {
+        dialog.showModal();
+        dialog.scrollTop = 0;
+        dialog.querySelectorAll('.overflow-auto').forEach(scrollEl => { scrollEl.scrollTop = 0; });
+      }
     }
 
     function wireDialogClose(dialogId, closeBtnId, onClose) {
