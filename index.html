@@ -3809,6 +3809,7 @@
       }
       if (photoUploadFailed) showToast('Let op: één of meer foto\'s konden niet worden geüpload');
 
+      let pdfDownloadFailed = false;
       try {
         const { data: savedPhotos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', formId);
         const formForPdf = {
@@ -3825,13 +3826,16 @@
         const pdfCustomer = state.enrichedCustomers.find(c => c.id === customerId);
         downloadServiceFormPdf(formForPdf, items, savedPhotos || [], pdfCustomer);
       } catch (pdfErr) {
+        pdfDownloadFailed = true;
         console.error('PDF-download na opslaan mislukt:', pdfErr);
-        showToast('Formulier opgeslagen, maar PDF-download mislukte');
+        showToast((isEdit ? 'Formulier bijgewerkt' : 'Service formulier opgeslagen') + ', maar PDF-download mislukte');
       }
 
       safeClose('serviceFormDialog');
       state.serviceFormEditId = null;
-      showToast(isEdit ? 'Formulier bijgewerkt!' : 'Service formulier opgeslagen!');
+      if (!pdfDownloadFailed) {
+        showToast(isEdit ? 'Formulier bijgewerkt!' : 'Service formulier opgeslagen!');
+      }
       await openServiceFormsDialog();
     }
 
