@@ -893,6 +893,15 @@
         <div id="sfRecommendRows" class="space-y-2"></div>
         <button id="sfAddRecommendRow" type="button" class="mt-2 text-sm text-brand-400 hover:text-brand-300">+ Rij toevoegen</button>
       </div>
+      <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <label class="mb-1 block text-sm text-slate-300">Taal van de PDF</label>
+        <select id="sfLanguageSelect" class="w-full max-w-xs rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400">
+          <option value="nl">Nederlands</option>
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+        </select>
+        <div class="mt-1 text-xs text-slate-500">Checklist-secties, items en opmerkingen blijven in het Nederlands.</div>
+      </div>
       <div class="flex gap-3">
         <button id="saveServiceFormBtn" class="rounded-2xl bg-brand-500 px-5 py-3 font-semibold text-white hover:bg-brand-400">Opslaan</button>
         <button id="cancelServiceFormBtn" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold hover:bg-white/10">Annuleren</button>
@@ -1062,6 +1071,66 @@
         footer: 'Der Kunde bestätigt, dass die Arbeiten abgeschlossen sind, und genehmigt die erfassten Leistungen und Stunden.',
         signature: 'Unterschrift Kunde',
         freeTextNotice: 'Hinweis: Die Freitextfelder unten (Beschreibung, Kommentare) sind auf Niederländisch, wie vom Monteur eingegeben.'
+      }
+    };
+
+    const SERVICEFORM_I18N = {
+      nl: {
+        title: 'Service form MultiPack',
+        customer: 'Klant',
+        date: 'Datum',
+        machineName: 'Machinenaam',
+        machineNameCustomer: 'Machinenaam bij klant',
+        serviceEngineer: 'Monteur',
+        item: 'Item',
+        colCheck: 'Controleren',
+        colAdjust: 'Aanpassen',
+        colClean: 'Reinigen',
+        colReplace: 'Vervangen',
+        colComments: 'Opmerkingen',
+        generalMaintenance: 'Algemeen onderhoud',
+        nextMaintenance: 'Aanbeveling voor volgend onderhoud',
+        machinePart: 'Machinedeel',
+        recommendation: 'Aanbeveling',
+        freeTextNotice: null
+      },
+      en: {
+        title: 'Service Form MultiPack',
+        customer: 'Customer',
+        date: 'Date',
+        machineName: 'Machine name',
+        machineNameCustomer: 'Machine name (customer)',
+        serviceEngineer: 'Service engineer',
+        item: 'Item',
+        colCheck: 'Check',
+        colAdjust: 'Adjust',
+        colClean: 'Clean',
+        colReplace: 'Replace',
+        colComments: 'Comments',
+        generalMaintenance: 'General maintenance',
+        nextMaintenance: 'Recommendation for next maintenance',
+        machinePart: 'Machine part',
+        recommendation: 'Recommendation',
+        freeTextNotice: 'Note: checklist section titles, item names, and comments below are shown in Dutch as entered by the engineer.'
+      },
+      de: {
+        title: 'Service Form MultiPack',
+        customer: 'Kunde',
+        date: 'Datum',
+        machineName: 'Maschinenname',
+        machineNameCustomer: 'Maschinenname (Kunde)',
+        serviceEngineer: 'Monteur',
+        item: 'Punkt',
+        colCheck: 'Prüfen',
+        colAdjust: 'Einstellen',
+        colClean: 'Reinigen',
+        colReplace: 'Ersetzen',
+        colComments: 'Bemerkungen',
+        generalMaintenance: 'Allgemeine Wartung',
+        nextMaintenance: 'Empfehlung für die nächste Wartung',
+        machinePart: 'Maschinenteil',
+        recommendation: 'Empfehlung',
+        freeTextNotice: 'Hinweis: Die Titel der Checklisten-Abschnitte, Punktnamen und Bemerkungen unten sind auf Niederländisch, wie vom Monteur eingegeben.'
       }
     };
 
@@ -3164,6 +3233,8 @@
     }
 
     function downloadServiceFormPdf(form, items, photos, customer) {
+      const t = SERVICEFORM_I18N[form.pdf_language || 'nl'] || SERVICEFORM_I18N.nl;
+      const freeTextNoticeHtml = t.freeTextNotice ? `<p style="margin:8px 0 0;font-style:italic;color:#666;font-size:10px;">${t.freeTextNotice}</p>` : '';
       const sections = getSectionsForMachine(form.machine_id).filter(section => {
         if (!section.optional) return true;
         return items.some(i => i.section === section.key);
@@ -3194,12 +3265,12 @@
           <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${section.title}</div>
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr style="background:#e8f5e9;">
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:11px;width:40%;">Item</th>
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Controleren</th>
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Aanpassen</th>
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Reinigen</th>
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">Vervangen</th>
-              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:10px;">Opmerkingen</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:11px;width:40%;">${t.item}</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colCheck}</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colAdjust}</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colClean}</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colReplace}</th>
+              <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:10px;">${t.colComments}</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
@@ -3215,13 +3286,14 @@
           <div style="font-size:20px;font-weight:700;">VAN DEN <span style="color:#1a7a3c;">BOS</span></div>
           <div style="font-size:10px;color:#555;">robotics</div>
         </div>
-        <div style="text-align:right;font-size:14px;font-weight:700;text-decoration:underline;">Service form MultiPack</div>
+        <div style="text-align:right;font-size:14px;font-weight:700;text-decoration:underline;">${t.title}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #ddd;">
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">Customer:</td><td style="padding:5px 8px;border:1px solid #ddd;">${customer?.name || '—'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">Date:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.form_date || '—'}</td></tr>
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Machine name:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name || 'MP'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Machine name customer:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name_customer || '—'}</td></tr>
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">Service engineer:</td><td style="padding:5px 8px;border:1px solid #ddd;" colspan="3">${form.engineer_name || '—'}</td></tr>
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.customer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${customer?.name || '—'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.date}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.form_date || '—'}</td></tr>
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineName}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name || 'MP'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineNameCustomer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name_customer || '—'}</td></tr>
+        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.serviceEngineer}:</td><td style="padding:5px 8px;border:1px solid #ddd;" colspan="3">${form.engineer_name || '—'}</td></tr>
       </table>
+      ${freeTextNoticeHtml}
       ${sections}
       ${(() => {
         let general = []; try { general = JSON.parse(form.general_maintenance || '[]'); } catch(e) {}
@@ -3229,10 +3301,10 @@
         const rowsHtml = (list) => list.map(r => `<tr><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.part || ''}</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.note || ''}</td></tr>`).join('');
         let extra = '';
         if (general.length) {
-          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">Algemeen onderhoud</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">Machinedeel</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">Aanbeveling</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table>`;
+          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.generalMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table>`;
         }
         if (recommend.length) {
-          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">Aanbeveling voor volgend onderhoud</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">Machinedeel</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">Aanbeveling</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table>`;
+          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.nextMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table>`;
         }
         return extra;
       })()}
@@ -3262,6 +3334,7 @@
       el('sfMachineName').value = form.machine_name || '';
       el('sfMachineNameCustomer').value = form.machine_name_customer || '';
       el('sfEngineer').value = form.engineer_name || '';
+      if (el('sfLanguageSelect')) el('sfLanguageSelect').value = form.pdf_language || 'nl';
       el('serviceFormCustomerLabel').textContent = `${customer.name || '-'} · ${machine?.machine_name || ''} (${machine?.type || ''})`;
       buildServiceFormSections();
       el('sfGeneralRows').innerHTML = '';
@@ -3364,44 +3437,6 @@
           openServiceFormForMachine(btn.dataset.sfNew, !!extraCheckbox?.checked);
         });
       });
-      container.querySelectorAll('[data-pdf-sf]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const form = allForms.find(f => f.id === btn.dataset.pdfSf);
-          if (!form) return;
-          showToast('PDF laden...');
-          const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
-          const { data: photos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', form.id);
-          const customer = state.enrichedCustomers.find(c => c.id === form.customer_id);
-          downloadServiceFormPdf(form, items || [], photos || [], customer);
-        });
-      });
-      container.querySelectorAll('[data-edit-sf]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const form = allForms.find(f => f.id === btn.dataset.editSf);
-          if (!form) return;
-          showToast('Formulier laden...');
-          const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
-          const { data: photos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', form.id);
-          safeClose('serviceFormsDialog');
-          await openMultipackFormForEdit(form, items || [], photos || []);
-        });
-      });
-      container.querySelectorAll('[data-delete-sf]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!window.confirm('Weet je zeker dat je dit formulier wilt verwijderen?')) return;
-          try {
-            await deleteServiceFormPhotosFromStorage(btn.dataset.deleteSf);
-            let { error } = await state.supabase.from('service_form_items').delete().eq('form_id', btn.dataset.deleteSf);
-            if (error) throw error;
-            ({ error } = await state.supabase.from('service_form_photos').delete().eq('form_id', btn.dataset.deleteSf));
-            if (error) throw error;
-            ({ error } = await state.supabase.from('service_forms').delete().eq('id', btn.dataset.deleteSf));
-            if (error) throw error;
-            await loadServiceFormsHistory(customerId);
-            showToast('Verwijderd');
-          } catch (e) { console.error(e); showToast(e?.message || 'Verwijderen mislukt'); }
-        });
-      });
     }
 
     function openServiceFormForMachine(machineId, presetExtra = false) {
@@ -3417,6 +3452,7 @@
       el('sfMachineName').value = machine.machine_name || '';
       el('sfMachineNameCustomer').value = machine.machine_name || '';
       el('sfEngineer').value = '';
+      if (el('sfLanguageSelect')) el('sfLanguageSelect').value = 'nl';
       el('serviceFormCustomerLabel').textContent = `${customer.name || '-'} · ${machine.machine_name || ''} (${machine.type || ''})`;
       buildServiceFormSections();
       if (presetExtra && el('sfOptionalToggle')) {
@@ -3691,6 +3727,7 @@
       const isEdit = !!state.serviceFormEditId;
       let formId;
       const machineId = state.serviceFormMachineId;
+      const pdfLanguage = el('sfLanguageSelect')?.value || 'nl';
       const generalRows = Array.from(el('sfGeneralRows').children).map(row => {
         const inputs = row.querySelectorAll('input[type="text"]');
         return { part: inputs[0]?.value.trim() || '', note: inputs[1]?.value.trim() || '' };
@@ -3709,6 +3746,7 @@
           machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
           general_maintenance: JSON.stringify(generalRows),
           next_maintenance_recommendation: JSON.stringify(recommendRows),
+          pdf_language: pdfLanguage,
         }).eq('id', formId);
         if (updateFormError) { showToast('Opslaan mislukt: ' + updateFormError.message); return; }
         const { error: deleteItemsError } = await state.supabase.from('service_form_items').delete().eq('form_id', formId);
@@ -3723,6 +3761,7 @@
           machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
           general_maintenance: JSON.stringify(generalRows),
           next_maintenance_recommendation: JSON.stringify(recommendRows),
+          pdf_language: pdfLanguage,
         }).select('id').single();
         if (formError) { showToast('Opslaan mislukt: ' + formError.message); return; }
         formId = formData.id;
@@ -3769,6 +3808,26 @@
         } catch(e) { photoUploadFailed = true; console.error('Photo upload error:', e); }
       }
       if (photoUploadFailed) showToast('Let op: één of meer foto\'s konden niet worden geüpload');
+
+      try {
+        const { data: savedPhotos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', formId);
+        const formForPdf = {
+          id: formId,
+          machine_id: machineId,
+          engineer_name: engineer,
+          form_date: el('sfDate').value,
+          machine_name: el('sfMachineName').value.trim() || null,
+          machine_name_customer: el('sfMachineNameCustomer').value.trim() || null,
+          general_maintenance: JSON.stringify(generalRows),
+          next_maintenance_recommendation: JSON.stringify(recommendRows),
+          pdf_language: pdfLanguage
+        };
+        const pdfCustomer = state.enrichedCustomers.find(c => c.id === customerId);
+        downloadServiceFormPdf(formForPdf, items, savedPhotos || [], pdfCustomer);
+      } catch (pdfErr) {
+        console.error('PDF-download na opslaan mislukt:', pdfErr);
+        showToast('Formulier opgeslagen, maar PDF-download mislukte');
+      }
 
       safeClose('serviceFormDialog');
       state.serviceFormEditId = null;
