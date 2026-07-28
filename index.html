@@ -980,6 +980,7 @@
       editingCustomerId: null,
       machineDialogMode: 'create',
       editingMachineId: null,
+      editingMachineOriginalLastService: null,
       customersDialogMode: 'all',
       timerInterval: null,
       timerStartTime: null,
@@ -1469,6 +1470,7 @@
 
       state.machineDialogMode = 'create';
       state.editingMachineId = null;
+      state.editingMachineOriginalLastService = null;
       el('machineDialogTitle').textContent = 'Machine toevoegen';
       el('machineDialogCustomer').textContent = customer.name || '-';
       resetMachineForm();
@@ -1486,6 +1488,7 @@
 
       state.machineDialogMode = 'edit';
       state.editingMachineId = machine.id;
+      state.editingMachineOriginalLastService = machine.last_service || null;
       el('machineDialogTitle').textContent = 'Machine bewerken';
       el('machineDialogCustomer').textContent = customer.name || '-';
       fillMachineForm(machine);
@@ -1496,6 +1499,7 @@
     function closeMachineDialog() {
       state.machineDialogMode = 'create';
       state.editingMachineId = null;
+      state.editingMachineOriginalLastService = null;
       el('deleteMachineBtn')?.classList.add('hidden');
       safeClose('machineDialog');
     }
@@ -1529,12 +1533,36 @@
         control_cabinet: el('machineControlCabinetInput')?.value.trim() || null
       };
 
-      if (state.machineDialogMode === 'edit' && state.editingMachineId) {
+      const isEdit = state.machineDialogMode === 'edit' && state.editingMachineId;
+      let machineIdForEvent = state.editingMachineId;
+
+      if (isEdit) {
         const { error } = await state.supabase.from(state.config.machines).update(payload).eq('id', state.editingMachineId);
         if (error) throw error;
       } else {
-        const { error } = await state.supabase.from(state.config.machines).insert(payload);
+        const { data, error } = await state.supabase.from(state.config.machines).insert(payload).select('id').single();
         if (error) throw error;
+        machineIdForEvent = data?.id || null;
+      }
+
+      // Status (rood/oranje/groen) wordt bepaald door de nieuwste service_events-registratie,
+      // niet door dit last_service-veld op zichzelf (zie getMachineStatus). Als "Laatste service"
+      // hier handmatig is ingevuld of gewijzigd, leggen we dat daarom ook vast als registratie.
+      // Die nieuwe registratie is altijd de meest recente (created_at) en wint dus automatisch
+      // van eventuele oudere/foutieve registraties, zodat de kleur direct weer klopt.
+      const lastServiceChanged = isEdit
+        ? Boolean(lastService) && lastService !== (state.editingMachineOriginalLastService || '')
+        : Boolean(lastService);
+
+      if (lastServiceChanged && machineIdForEvent && parseServiceMonth(lastService)) {
+        const { error: correctionError } = await state.supabase.from(state.config.service_events).insert({
+          machine_id: machineIdForEvent,
+          service_month: lastService,
+          engineer_name: null,
+          note: 'Handmatige correctie (machine bewerken)',
+          work_order_id: null
+        });
+        if (correctionError) console.error('Handmatige service-correctie kon niet worden vastgelegd:', correctionError);
       }
 
       closeMachineDialog();
