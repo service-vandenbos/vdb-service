@@ -710,6 +710,18 @@
             <label class="mb-1 block text-sm text-slate-300">Werkuren (bijv. 2.15)</label>
             <input id="werkbonWorkHours" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="2.15" />
           </div>
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Reisuren (optioneel)</label>
+            <input id="werkbonTravelHours" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="bijv. 1.5" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">KM gereden (optioneel)</label>
+            <input id="werkbonKm" type="number" min="0" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="bijv. 120" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-slate-300">Aantal overnachtingen (optioneel)</label>
+            <input id="werkbonOvernightCount" type="number" min="0" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 outline-none focus:border-brand-400" placeholder="0" />
+          </div>
         </div>
         <div class="mt-4">
           <label class="mb-2 block text-sm text-slate-300">Selecteer machines voor deze werkbon</label>
@@ -754,6 +766,15 @@
           </div>
           <div class="mt-2 flex gap-2">
             <button id="werkbonClearSignature" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Wissen</button>
+          </div>
+        </div>
+        <div class="mt-5">
+          <label class="mb-1 block text-sm text-slate-300">Handtekening monteur (optioneel)</label>
+          <div class="rounded-[22px] border border-white/10 bg-white overflow-hidden" style="height:160px">
+            <canvas id="werkbonEngineerSignatureCanvas" style="width:100%;height:160px;touch-action:none;cursor:crosshair;display:block;"></canvas>
+          </div>
+          <div class="mt-2 flex gap-2">
+            <button id="werkbonClearEngineerSignature" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Wissen</button>
           </div>
         </div>
         <div class="mt-5">
@@ -1027,6 +1048,10 @@
         qty: 'Aantal',
         footer: 'De klant bevestigt dat de werkzaamheden zijn voltooid en keurt de geregistreerde diensten en uren goed.',
         signature: 'Handtekening klant',
+        engineerSignature: 'Handtekening monteur',
+        travelHours: 'Reisuren',
+        km: 'KM gereden',
+        overnightCount: 'Overnachtingen',
         freeTextNotice: null
       },
       en: {
@@ -1049,6 +1074,10 @@
         qty: 'Qty',
         footer: 'The customer confirms that the work has been completed and approves the registered services and hours.',
         signature: 'Customer signature',
+        engineerSignature: 'Engineer signature',
+        travelHours: 'Travel hours',
+        km: 'Km driven',
+        overnightCount: 'Overnight stays',
         freeTextNotice: 'Note: the free-text fields below (description, comments) are shown in Dutch as entered by the engineer.'
       },
       de: {
@@ -1071,6 +1100,10 @@
         qty: 'Menge',
         footer: 'Der Kunde bestätigt, dass die Arbeiten abgeschlossen sind, und genehmigt die erfassten Leistungen und Stunden.',
         signature: 'Unterschrift Kunde',
+        engineerSignature: 'Unterschrift Monteur',
+        travelHours: 'Reisestunden',
+        km: 'Gefahrene km',
+        overnightCount: 'Übernachtungen',
         freeTextNotice: 'Hinweis: Die Freitextfelder unten (Beschreibung, Kommentare) sind auf Niederländisch, wie vom Monteur eingegeben.'
       }
     };
@@ -2817,6 +2850,9 @@
       el('werkbonDate').value = wo.order_date || '';
       el('werkbonDescription').value = wo.description || '';
       el('werkbonWorkHours').value = wo.work_hours || '';
+      el('werkbonTravelHours').value = wo.travel_hours || '';
+      el('werkbonKm').value = wo.km_driven ?? '';
+      el('werkbonOvernightCount').value = wo.overnight_count ?? '';
 
       const machineList = el('werkbonMachineList');
       if (customer.machines && customer.machines.length) {
@@ -2838,8 +2874,21 @@
         img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         img.src = wo.signature_data;
       }
+
+      const engineerCanvas = el('werkbonEngineerSignatureCanvas');
+      engineerCanvas._sigInit = false;
+      engineerCanvas.width = engineerCanvas.offsetWidth || 600;
+      engineerCanvas.height = 160;
+      const engineerCtx = engineerCanvas.getContext('2d');
+      engineerCtx.clearRect(0, 0, engineerCanvas.width, engineerCanvas.height);
+      if (wo.engineer_signature_data) {
+        const img2 = new Image();
+        img2.onload = () => engineerCtx.drawImage(img2, 0, 0, engineerCanvas.width, engineerCanvas.height);
+        img2.src = wo.engineer_signature_data;
+      }
+
       openModal('werkbonDialog');
-      setTimeout(() => initSignatureCanvas(), 100);
+      setTimeout(() => { initSignatureCanvas(); initSignatureCanvas('werkbonEngineerSignatureCanvas'); }, 100);
     }
 
     function downloadWerkbonPdf(wo, customer) {
@@ -2855,13 +2904,13 @@
       <div class="header"><div><div class="logo">VAN DEN <span class="green">BOS</span></div><div class="logo-sub">robotics</div><div class="logo" style="margin-top:4px">VAN DEN <span class="blue">BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">${t.title}</div><div style="margin-top:12px;font-size:10px"><strong>${customer.name || '—'}</strong><br>${customer.address || ''}<br>${customer.postcode || ''} ${customer.city || ''}<br>${customer.country || ''}</div></div></div>
       <div class="meta"><p><strong>${t.orderNumber}:</strong> ${wo.order_number || '—'}</p><p><strong>${t.description}:</strong> ${wo.description || '—'}</p>${freeTextNoticeHtml}</div>
       <h3>${t.timeRegistration}</h3>
-      <table><thead><tr><th>${t.date}</th><th>${t.engineer}</th><th>${t.workHours}</th></tr></thead><tbody><tr><td>${dateFormatted}</td><td>${wo.engineer_name || '—'}</td><td>${wo.work_hours || '—'}</td></tr></tbody></table>
+      <table><thead><tr><th>${t.date}</th><th>${t.engineer}</th><th>${t.workHours}</th><th>${t.travelHours}</th><th>${t.km}</th><th>${t.overnightCount}</th></tr></thead><tbody><tr><td>${dateFormatted}</td><td>${wo.engineer_name || '—'}</td><td>${wo.work_hours || '—'}</td><td>${wo.travel_hours || '—'}</td><td>${wo.km_driven ?? '—'}</td><td>${wo.overnight_count ?? '—'}</td></tr></tbody></table>
       <h3>${t.machineInfo}</h3>
       <table><thead><tr><th>${t.objectNr}</th><th>${t.name}</th><th>${t.installDate}</th><th>${t.manufacturer}</th><th>${t.serial}</th></tr></thead><tbody>${machineRows || '<tr><td colspan="5">—</td></tr>'}</tbody></table>
       <h3>${t.usedParts}</h3>
       <table><thead><tr><th>${t.articleNr}</th><th>${t.descriptionCol}</th><th>${t.qty}</th></tr></thead><tbody>${buildPartsRowsHtml(parsedParts, wo.other_parts) || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
       <div class="footer">${t.footer}</div>
-      <div class="sig-block"><div class="sig-box"><label>${t.signature}</label><img class="sig" src="${wo.signature_data || ''}" alt="signature" /><div style="margin-top:4px;font-size:9px">${customer.name || '—'} — ${dateFormatted}</div></div></div>
+      <div class="sig-block"><div class="sig-box"><label>${t.signature}</label><img class="sig" src="${wo.signature_data || ''}" alt="signature" /><div style="margin-top:4px;font-size:9px">${customer.name || '—'} — ${dateFormatted}</div></div>${wo.engineer_signature_data ? `<div class="sig-box"><label>${t.engineerSignature}</label><img class="sig" src="${wo.engineer_signature_data}" alt="signature" /><div style="margin-top:4px;font-size:9px">${wo.engineer_name || '—'} — ${dateFormatted}</div></div>` : ''}</div>
       </body></html>`;
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
@@ -2985,6 +3034,9 @@
       const dateFormatted = date !== '—' ? new Date(date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
       const engineer = el('werkbonEngineer').value.trim() || '—';
       const hours = el('werkbonWorkHours').value.trim() || '—';
+      const travelHours = el('werkbonTravelHours').value.trim();
+      const km = el('werkbonKm').value.trim();
+      const overnightCount = el('werkbonOvernightCount').value.trim();
       const orderNumber = el('werkbonOrderNumber').value || '—';
       const machineNames = machines.map(m => m.machine_name || '—').join(', ');
 
@@ -2994,6 +3046,9 @@
           <span class="text-slate-400">Datum</span><span class="text-slate-200 font-medium">${dateFormatted}</span>
           <span class="text-slate-400">Monteur</span><span class="text-slate-200 font-medium">${engineer}</span>
           <span class="text-slate-400">Uren</span><span class="text-slate-200 font-medium">${hours}</span>
+          ${travelHours ? `<span class="text-slate-400">Reisuren</span><span class="text-slate-200 font-medium">${travelHours}</span>` : ''}
+          ${km ? `<span class="text-slate-400">KM gereden</span><span class="text-slate-200 font-medium">${km}</span>` : ''}
+          ${overnightCount ? `<span class="text-slate-400">Overnachtingen</span><span class="text-slate-200 font-medium">${overnightCount}</span>` : ''}
           <span class="text-slate-400">Machine(s)</span><span class="text-slate-200 font-medium">${machineNames}</span>
         </div>`;
 
@@ -3022,7 +3077,14 @@
       canvas.height = 160;
       canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
       canvas._sigInit = false;
-      setTimeout(() => initSignatureCanvas(), 100);
+
+      const engineerCanvas = el('werkbonEngineerSignatureCanvas');
+      engineerCanvas.width = engineerCanvas.offsetWidth || 600;
+      engineerCanvas.height = 160;
+      engineerCanvas.getContext('2d').clearRect(0, 0, engineerCanvas.width, engineerCanvas.height);
+      engineerCanvas._sigInit = false;
+
+      setTimeout(() => { initSignatureCanvas(); initSignatureCanvas('werkbonEngineerSignatureCanvas'); }, 100);
     }
 
     const LEGACY_MULTIPACK_SECTIONS = [
@@ -3886,6 +3948,9 @@
       el('werkbonDate').value = new Date().toISOString().split('T')[0];
       el('werkbonDescription').value = 'Service';
       el('werkbonWorkHours').value = '';
+      el('werkbonTravelHours').value = '';
+      el('werkbonKm').value = '';
+      el('werkbonOvernightCount').value = '';
       el('werkbonOrderNumber').value = 'Bezig met genereren...';
 
       const machineList = el('werkbonMachineList');
@@ -3952,6 +4017,10 @@
       const description = el('werkbonDescription').value.trim() || '—';
       const workHoursFormatted = el('werkbonWorkHours').value.trim() || '—';
       const signatureDataUrl = el('werkbonSignatureCanvas').toDataURL('image/png');
+      const engineerSignatureDataUrl = el('werkbonEngineerSignatureCanvas').toDataURL('image/png');
+      const travelHoursFormatted = el('werkbonTravelHours').value.trim() || null;
+      const kmDriven = el('werkbonKm').value.trim() === '' ? null : Number(el('werkbonKm').value.trim());
+      const overnightCount = el('werkbonOvernightCount').value.trim() === '' ? null : Number(el('werkbonOvernightCount').value.trim());
       const selectedMachineIds = Array.from(document.querySelectorAll('[data-werkbon-machine]:checked')).map(cb => cb.dataset.werkbonMachine);
       const machines = (customer.machines || []).filter(m => selectedMachineIds.includes(m.id));
       if (!machines.length) { showToast('Select at least one machine'); return; }
@@ -3970,9 +4039,13 @@
         order_date: date,
         description,
         work_hours: workHoursFormatted,
+        travel_hours: travelHoursFormatted,
+        km_driven: kmDriven,
+        overnight_count: overnightCount,
         machine_ids: machineIdsStr,
         machine_names: machineNames,
         signature_data: signatureDataUrl,
+        engineer_signature_data: engineerSignatureDataUrl,
         parts_used: partsUsedJson,
         other_parts: otherParts || null,
         pdf_language: pdfLanguage
@@ -4090,6 +4163,10 @@
       on('werkbonBackBtn', 'click', () => werkbonGoToStep1());
       on('werkbonClearSignature', 'click', () => {
         const canvas = el('werkbonSignatureCanvas');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      });
+      on('werkbonClearEngineerSignature', 'click', () => {
+        const canvas = el('werkbonEngineerSignatureCanvas');
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
       });
       on('werkbonPartSearch', 'input', (e) => {
