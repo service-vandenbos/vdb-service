@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
     window.APP_CONFIG = {
       supabaseUrl: 'https://tbtoaeraevuygajyaggj.supabase.co',
@@ -2435,25 +2436,18 @@
       openModal('machinesDialog');
     }
 
-    function downloadMonteurRegistrationPdf(data) {
+    async function downloadMonteurRegistrationPdf(data) {
       const dateFormatted = new Date().toLocaleDateString('nl-NL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-      const html = `<!DOCTYPE html><html><head><title>Monteur inzet - ${data.customerName}</title><style>*{box-sizing:border-box;margin:0;padding:0;}@page{margin:1cm;size:A4;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.logo{font-size:18px;font-weight:bold;}.logo .green{color:#1a7a3c;}.logo .blue{color:#1978f5;}.logo-sub{font-size:11px;color:#555;}.title{font-size:16px;font-weight:bold;text-decoration:underline;}.address-block{font-size:10px;color:#333;margin-top:8px;}.meta{margin:12px 0;}.meta p{margin:2px 0;}h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}</style></head><body>
+      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;background:#fff;}.pdfroot .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.pdfroot .logo{font-size:18px;font-weight:bold;}.pdfroot .logo .green{color:#1a7a3c;}.pdfroot .logo .blue{color:#1978f5;}.pdfroot .logo-sub{font-size:11px;color:#555;}.pdfroot .title{font-size:16px;font-weight:bold;text-decoration:underline;}.pdfroot .address-block{font-size:10px;color:#333;margin-top:8px;}.pdfroot .meta{margin:12px 0;}.pdfroot .meta p{margin:2px 0;}.pdfroot h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}.pdfroot table{width:100%;border-collapse:collapse;margin-bottom:12px;}.pdfroot th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}.pdfroot td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.pdfroot .footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}`;
+      const innerHtml = `
       <div class="header"><div><div class="logo">VAN DEN <span class="green">BOS</span></div><div class="logo-sub">robotics</div><div class="logo" style="margin-top:4px">VAN DEN <span class="blue">BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">Monteur inzet - noodgeval</div><div style="margin-top:12px;font-size:10px"><strong>${data.customerName || '—'}</strong><br>${data.machineName || '—'}</div></div></div>
       <div class="meta"><p><strong>Datum:</strong> ${dateFormatted}</p><p><strong>Gemeld door:</strong> ${data.engineerName || '—'}</p></div>
       <h3>Monteur gegevens</h3>
       <table><thead><tr><th>Gewerkte uren</th><th>Reisuren</th><th>KM gereden</th><th>Aantal overnachtingen</th></tr></thead><tbody><tr><td>${data.monteurHours ?? '—'}</td><td>${data.monteurTravelHours ?? '—'}</td><td>${data.monteurKm ?? '—'}</td><td>${data.monteurOvernightCount ?? '—'}</td></tr></tbody></table>
       ${data.note ? `<h3>Notitie</h3><p>${data.note}</p>` : ''}
       <div class="footer">Automatisch gegenereerd overzicht bij tijdregistratie software.</div>
-      </body></html>`;
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Monteur_inzet_${(data.customerName || 'export').replace(/[^a-z0-9]+/gi, '_')}.html`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      `;
+      await renderHtmlToPdf({ innerHtml, cssText, filename: `Monteur_inzet_${(data.customerName || 'export').replace(/[^a-z0-9]+/gi, '_')}.pdf` });
     }
 
     async function saveTimeRegistration() {
@@ -2497,24 +2491,32 @@
       }
 
       const hasMonteurData = monteurHours !== null || monteurTravelHours !== null || monteurKm !== null || monteurOvernight !== null;
+      let monteurPdfFailed = false;
       if (hasMonteurData) {
         const customer = state.customers.find(c => c.id === machine?.customer_id);
-        downloadMonteurRegistrationPdf({
-          customerName: customer?.name || '',
-          machineName: machine?.machine_name || '',
-          engineerName: engineer,
-          monteurHours,
-          monteurTravelHours,
-          monteurKm,
-          monteurOvernightCount: monteurOvernight,
-          note: el('timeNoteInput').value.trim()
-        });
+        try {
+          await downloadMonteurRegistrationPdf({
+            customerName: customer?.name || '',
+            machineName: machine?.machine_name || '',
+            engineerName: engineer,
+            monteurHours,
+            monteurTravelHours,
+            monteurKm,
+            monteurOvernightCount: monteurOvernight,
+            note: el('timeNoteInput').value.trim()
+          });
+        } catch (pdfErr) {
+          monteurPdfFailed = true;
+          console.error('PDF-download mislukt:', pdfErr);
+        }
       }
 
       const wasEditing = !!state.editingTimeRegistrationId;
       state.editingTimeRegistrationId = null;
       safeClose('timeDialog');
-      showToast(hasMonteurData ? `${formatDuration(totalMinutes)} opgeslagen + PDF gedownload` : `${formatDuration(totalMinutes)} opgeslagen`);
+      showToast(hasMonteurData
+        ? (monteurPdfFailed ? `${formatDuration(totalMinutes)} opgeslagen, maar PDF-download mislukte` : `${formatDuration(totalMinutes)} opgeslagen + PDF gedownload`)
+        : `${formatDuration(totalMinutes)} opgeslagen`);
       if (wasEditing) await openTimeReport();
     }
 
@@ -2575,58 +2577,57 @@
         });
       });
       container.querySelectorAll('[data-pdf-time-reg]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const reg = data.find(r => r.id === btn.dataset.pdfTimeReg);
           if (!reg) { showToast('Registratie niet gevonden'); return; }
           const machine = state.machines.find(m => m.id === reg.machine_id);
           const customer = state.customers.find(c => c.id === reg.customer_id);
-          downloadMonteurRegistrationPdf({
-            customerName: customer?.name || '',
-            machineName: machine?.machine_name || '',
-            engineerName: reg.engineer_name || '',
-            monteurHours: reg.monteur_hours,
-            monteurTravelHours: reg.monteur_travel_hours,
-            monteurKm: reg.monteur_km,
-            monteurOvernightCount: reg.monteur_overnight_count,
-            note: reg.note || ''
-          });
+          try {
+            await downloadMonteurRegistrationPdf({
+              customerName: customer?.name || '',
+              machineName: machine?.machine_name || '',
+              engineerName: reg.engineer_name || '',
+              monteurHours: reg.monteur_hours,
+              monteurTravelHours: reg.monteur_travel_hours,
+              monteurKm: reg.monteur_km,
+              monteurOvernightCount: reg.monteur_overnight_count,
+              note: reg.note || ''
+            });
+          } catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
         });
       });
       openModal('timeReportDialog');
     }
 
-    function exportTimeReportPdf() {
-      state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false }).then(({ data }) => {
-        if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
-        const byCustomer = new Map();
-        data.forEach(reg => {
-          const machine = state.machines.find(m => m.id === reg.machine_id);
-          const customer = state.customers.find(c => c.id === reg.customer_id);
-          const customerName = customer?.name || 'Onbekende klant';
-          const machineName = machine?.machine_name || 'Onbekende machine';
-          if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
-          const byMachine = byCustomer.get(customerName);
-          if (!byMachine.has(machineName)) byMachine.set(machineName, []);
-          byMachine.get(machineName).push(reg);
-        });
-        let grandTotal = 0; let bodyHtml = '';
-        byCustomer.forEach((machines, customerName) => {
-          let customerTotal = 0; let rows = '';
-          machines.forEach((regs, machineName) => {
-            regs.forEach(r => {
-              customerTotal += (r.duration_minutes || 0);
-              rows += `<tr><td class="machine">${machineName}</td><td class="duration">${formatDuration(r.duration_minutes || 0)}</td><td class="date">${formatDate(r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
-            });
-          });
-          grandTotal += customerTotal;
-          bodyHtml += `<div class="customer-block"><div class="customer-header"><span class="customer-name">${customerName}</span><span class="customer-total">${formatDuration(customerTotal)}</span></div><table><tbody>${rows}</tbody></table></div>`;
-        });
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<html><head><title>Software Uren 2026</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;}h1{font-size:16px;font-weight:bold;margin-bottom:6px;}.grand-total{text-align:right;font-size:12px;font-weight:bold;color:#1978f5;margin-bottom:20px;}.customer-block{margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.customer-header{display:flex;justify-content:space-between;background:#f4f4f4;padding:8px 12px;font-weight:bold;font-size:12px;}.customer-total{color:#1978f5;}table{width:100%;border-collapse:collapse;}td{padding:6px 12px;border-top:1px solid #eee;vertical-align:top;}td.machine{font-weight:bold;width:30%;}td.duration{width:12%;color:#333;}td.date{width:20%;color:#555;}td.engineer{color:#555;}</style></head><body><h1>Software Uren 2026 — Van den Bos Robotics</h1><div class="grand-total">Totaal alle klanten: ${formatDuration(grandTotal)}</div>${bodyHtml}</body></html>`);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 400);
+    async function exportTimeReportPdf() {
+      const { data } = await state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false });
+      if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
+      const byCustomer = new Map();
+      data.forEach(reg => {
+        const machine = state.machines.find(m => m.id === reg.machine_id);
+        const customer = state.customers.find(c => c.id === reg.customer_id);
+        const customerName = customer?.name || 'Onbekende klant';
+        const machineName = machine?.machine_name || 'Onbekende machine';
+        if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
+        const byMachine = byCustomer.get(customerName);
+        if (!byMachine.has(machineName)) byMachine.set(machineName, []);
+        byMachine.get(machineName).push(reg);
       });
+      let grandTotal = 0; let bodyHtml = '';
+      byCustomer.forEach((machines, customerName) => {
+        let customerTotal = 0; let rows = '';
+        machines.forEach((regs, machineName) => {
+          regs.forEach(r => {
+            customerTotal += (r.duration_minutes || 0);
+            rows += `<tr><td class="machine">${machineName}</td><td class="duration">${formatDuration(r.duration_minutes || 0)}</td><td class="date">${formatDate(r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
+          });
+        });
+        grandTotal += customerTotal;
+        bodyHtml += `<div class="customer-block"><div class="customer-header"><span class="customer-name">${customerName}</span><span class="customer-total">${formatDuration(customerTotal)}</span></div><table><tbody>${rows}</tbody></table></div>`;
+      });
+      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;background:#fff;}.pdfroot h1{font-size:16px;font-weight:bold;margin-bottom:6px;}.pdfroot .grand-total{text-align:right;font-size:12px;font-weight:bold;color:#1978f5;margin-bottom:20px;}.pdfroot .customer-block{margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.pdfroot .customer-header{display:flex;justify-content:space-between;background:#f4f4f4;padding:8px 12px;font-weight:bold;font-size:12px;}.pdfroot .customer-total{color:#1978f5;}.pdfroot table{width:100%;border-collapse:collapse;}.pdfroot td{padding:6px 12px;border-top:1px solid #eee;vertical-align:top;}.pdfroot td.machine{font-weight:bold;width:30%;}.pdfroot td.duration{width:12%;color:#333;}.pdfroot td.date{width:20%;color:#555;}.pdfroot td.engineer{color:#555;}`;
+      const innerHtml = `<h1>Software Uren 2026 — Van den Bos Robotics</h1><div class="grand-total">Totaal alle klanten: ${formatDuration(grandTotal)}</div>${bodyHtml}`;
+      await renderHtmlToPdf({ innerHtml, cssText, filename: 'Software_Uren_2026.pdf' });
     }
 
     async function openWerkbonHistoryDialog() {
@@ -2686,9 +2687,11 @@
         }).join('');
 
         container.querySelectorAll('[data-wo-download]').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const wo = workOrders.find(w => w.id === btn.dataset.woDownload);
-            if (wo) downloadWerkbonPdf(wo, customer);
+            if (!wo) return;
+            try { await downloadWerkbonPdf(wo, customer); }
+            catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
           });
         });
         container.querySelectorAll('[data-wo-edit]').forEach(btn => {
@@ -2751,11 +2754,12 @@
         }).join('');
 
         container.querySelectorAll('[data-bt-download]').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             const test = brakeTests.find(t => t.id === btn.dataset.btDownload);
             if (!test) return;
             const machine = state.machines.find(m => m.id === test.machine_id);
-            downloadBrakeTestPdf(test, customer, machine);
+            try { await downloadBrakeTestPdf(test, customer, machine); }
+            catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
           });
         });
         container.querySelectorAll('[data-bt-edit]').forEach(btn => {
@@ -2783,7 +2787,8 @@
             showToast('PDF laden...');
             const { data: items } = await state.supabase.from('service_form_items').select('*').eq('form_id', form.id);
             const { data: photos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', form.id);
-            downloadServiceFormPdf(form, items || [], photos || [], customer);
+            try { await downloadServiceFormPdf(form, items || [], photos || [], customer); }
+            catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
           });
         });
         container.querySelectorAll('[data-sf-edit]').forEach(btn => {
@@ -2891,7 +2896,42 @@
       setTimeout(() => { initSignatureCanvas(); initSignatureCanvas('werkbonEngineerSignatureCanvas'); }, 100);
     }
 
-    function downloadWerkbonPdf(wo, customer) {
+    // Rendert een stukje HTML (+ eigen, geïsoleerde CSS) off-screen en zet het om naar
+    // een echt, downloadbaar PDF-bestand. De CSS wordt bewust onder ".pdfroot" geschoold
+    // zodat deze nooit de rest van de dashboard-styling kan beïnvloeden.
+    async function renderHtmlToPdf({ innerHtml, cssText, filename }) {
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-10000px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '794px';
+
+      const styleEl = document.createElement('style');
+      styleEl.textContent = cssText;
+
+      const contentEl = document.createElement('div');
+      contentEl.className = 'pdfroot';
+      contentEl.innerHTML = innerHtml;
+
+      wrapper.appendChild(styleEl);
+      wrapper.appendChild(contentEl);
+      document.body.appendChild(wrapper);
+
+      try {
+        await html2pdf().set({
+          margin: 10,
+          filename,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] }
+        }).from(contentEl).save();
+      } finally {
+        wrapper.remove();
+      }
+    }
+
+    async function downloadWerkbonPdf(wo, customer) {
       const lang = wo.pdf_language || 'nl';
       const t = WERKBON_I18N[lang] || WERKBON_I18N.nl;
       const localeMap = { nl: 'nl-NL', en: 'en-GB', de: 'de-DE' };
@@ -2900,7 +2940,8 @@
       const machineRows = machines.map(m => `<tr><td>${m.kuka_serial || '—'}</td><td>${m.machine_name || '—'}</td><td>${m.install_date || '—'}</td><td>VDB</td><td>${m.kuka_serial || '—'}</td></tr>`).join('');
       let parsedParts = []; try { parsedParts = JSON.parse(wo.parts_used || '[]'); } catch(e) {}
       const freeTextNoticeHtml = t.freeTextNotice ? `<p style="margin-top:6px;font-style:italic;color:#666;">${t.freeTextNotice}</p>` : '';
-      const html = `<!DOCTYPE html><html><head><title>${t.title} ${wo.order_number}</title><style>*{box-sizing:border-box;margin:0;padding:0;}@page{margin:1cm;size:A4;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.logo{font-size:18px;font-weight:bold;}.logo .green{color:#1a7a3c;}.logo .blue{color:#1978f5;}.logo-sub{font-size:11px;color:#555;}.title{font-size:16px;font-weight:bold;text-decoration:underline;}.address-block{font-size:10px;color:#333;margin-top:8px;}.meta{margin:12px 0;}.meta p{margin:2px 0;}h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}.sig-block{display:flex;gap:20px;margin-top:16px;}.sig-box{flex:1;border:1px solid #ccc;padding:8px;min-height:80px;}.sig-box label{font-size:9px;color:#555;display:block;margin-bottom:4px;}img.sig{max-height:60px;}</style></head><body>
+      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;background:#fff;}.pdfroot .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.pdfroot .logo{font-size:18px;font-weight:bold;}.pdfroot .logo .green{color:#1a7a3c;}.pdfroot .logo .blue{color:#1978f5;}.pdfroot .logo-sub{font-size:11px;color:#555;}.pdfroot .title{font-size:16px;font-weight:bold;text-decoration:underline;}.pdfroot .address-block{font-size:10px;color:#333;margin-top:8px;}.pdfroot .meta{margin:12px 0;}.pdfroot .meta p{margin:2px 0;}.pdfroot h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}.pdfroot table{width:100%;border-collapse:collapse;margin-bottom:12px;}.pdfroot th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}.pdfroot td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.pdfroot .footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}.pdfroot .sig-block{display:flex;gap:20px;margin-top:16px;}.pdfroot .sig-box{flex:1;border:1px solid #ccc;padding:8px;min-height:80px;}.pdfroot .sig-box label{font-size:9px;color:#555;display:block;margin-bottom:4px;}.pdfroot img.sig{max-height:60px;}`;
+      const innerHtml = `
       <div class="header"><div><div class="logo">VAN DEN <span class="green">BOS</span></div><div class="logo-sub">robotics</div><div class="logo" style="margin-top:4px">VAN DEN <span class="blue">BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">${t.title}</div><div style="margin-top:12px;font-size:10px"><strong>${customer.name || '—'}</strong><br>${customer.address || ''}<br>${customer.postcode || ''} ${customer.city || ''}<br>${customer.country || ''}</div></div></div>
       <div class="meta"><p><strong>${t.orderNumber}:</strong> ${wo.order_number || '—'}</p><p><strong>${t.description}:</strong> ${wo.description || '—'}</p>${freeTextNoticeHtml}</div>
       <h3>${t.timeRegistration}</h3>
@@ -2911,16 +2952,8 @@
       <table><thead><tr><th>${t.articleNr}</th><th>${t.descriptionCol}</th><th>${t.qty}</th></tr></thead><tbody>${buildPartsRowsHtml(parsedParts, wo.other_parts) || '<tr><td colspan="3">—</td></tr>'}</tbody></table>
       <div class="footer">${t.footer}</div>
       <div class="sig-block"><div class="sig-box"><label>${t.signature}</label><img class="sig" src="${wo.signature_data || ''}" alt="signature" /><div style="margin-top:4px;font-size:9px">${customer.name || '—'} — ${dateFormatted}</div></div>${wo.engineer_signature_data ? `<div class="sig-box"><label>${t.engineerSignature}</label><img class="sig" src="${wo.engineer_signature_data}" alt="signature" /><div style="margin-top:4px;font-size:9px">${wo.engineer_name || '—'} — ${dateFormatted}</div></div>` : ''}</div>
-      </body></html>`;
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Werkbon_${wo.order_number || 'export'}.html`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      `;
+      await renderHtmlToPdf({ innerHtml, cssText, filename: `Werkbon_${wo.order_number || 'export'}.pdf` });
     }
 
     async function ensureSparePartsLoaded() {
@@ -3322,7 +3355,7 @@
       container.appendChild(row);
     }
 
-    function downloadServiceFormPdf(form, items, photos, customer) {
+    async function downloadServiceFormPdf(form, items, photos, customer) {
       const t = SERVICEFORM_I18N[form.pdf_language || 'nl'] || SERVICEFORM_I18N.nl;
       const freeTextNoticeHtml = t.freeTextNotice ? `<p style="margin:8px 0 0;font-style:italic;color:#666;font-size:10px;">${t.freeTextNotice}</p>` : '';
       const sections = getSectionsForMachine(form.machine_id).filter(section => {
@@ -3368,9 +3401,8 @@
         </div>`;
       }).join('');
 
-      const html = `<!DOCTYPE html><html><head><title>Service Form ${form.form_date || ''}</title>
-      <style>*{box-sizing:border-box;margin:0;padding:0;}@page{margin:1cm;size:A4;}body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;}</style>
-      </head><body>
+      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;background:#fff;}`;
+      const innerHtml = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
         <div>
           <div style="font-size:20px;font-weight:700;">VAN DEN <span style="color:#1a7a3c;">BOS</span></div>
@@ -3398,17 +3430,9 @@
         }
         return extra;
       })()}
-      </body></html>`;
+      `;
 
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.html`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await renderHtmlToPdf({ innerHtml, cssText, filename: `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.pdf` });
     }
 
     async function openMultipackFormForEdit(form, items, photos) {
@@ -3729,7 +3753,7 @@
       safeClose('brakeTestDialog');
     }
 
-    function downloadBrakeTestPdf(test, customer, machine) {
+    async function downloadBrakeTestPdf(test, customer, machine) {
       let scanners = [];
       try { scanners = JSON.parse(test.scanners) || []; } catch(e) {}
       const usedScanners = scanners.filter(s => s && (s.scanner_type || s.scanner_ip || s.drive1 || s.drive2 || s.drive3));
@@ -3749,17 +3773,8 @@
           ${s.notes ? `<div class="notes">Notes: ${s.notes}</div>` : ''}
         </div>`).join('');
 
-      const html = `<!DOCTYPE html><html><head><title>Brake test ${test.tw_code || ''}</title><style>
-        *{box-sizing:border-box;margin:0;padding:0;} @page{margin:1cm;size:A4;} body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:32px;}
-        h1{font-size:18px;margin-bottom:4px;} .sub{color:#555;margin-bottom:20px;}
-        .info{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:20px;}
-        .section{border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:14px;page-break-inside:avoid;}
-        .section-title{font-weight:bold;margin-bottom:8px;}
-        table{width:100%;border-collapse:collapse;margin-bottom:8px;} th,td{border:1px solid #ddd;padding:5px 8px;text-align:left;font-size:11px;}
-        .notes{font-size:11px;color:#444;margin-top:4px;}
-        .result{font-weight:bold;margin:16px 0;padding:10px;border-radius:6px;background:${test.result === 'fail' ? '#fde2e2' : '#e2fbe9'};}
-        .sig{margin-top:20px;} .sig img{max-width:280px;border:1px solid #ddd;}
-      </style></head><body>
+      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:32px;background:#fff;}.pdfroot h1{font-size:18px;margin-bottom:4px;}.pdfroot .sub{color:#555;margin-bottom:20px;}.pdfroot .info{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:20px;}.pdfroot .section{border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:14px;page-break-inside:avoid;}.pdfroot .section-title{font-weight:bold;margin-bottom:8px;}.pdfroot table{width:100%;border-collapse:collapse;margin-bottom:8px;}.pdfroot th,.pdfroot td{border:1px solid #ddd;padding:5px 8px;text-align:left;font-size:11px;}.pdfroot .notes{font-size:11px;color:#444;margin-top:4px;}.pdfroot .result{font-weight:bold;margin:16px 0;padding:10px;border-radius:6px;background:${test.result === 'fail' ? '#fde2e2' : '#e2fbe9'};}.pdfroot .sig{margin-top:20px;}.pdfroot .sig img{max-width:280px;border:1px solid #ddd;}`;
+      const innerHtml = `
         <h1>Brake Test Protocol — Transfer Cart (TW)</h1>
         <div class="sub">Van den Bos Robotics · ${customer?.name || ''}</div>
         <div class="info">
@@ -3775,16 +3790,8 @@
         ${scannerBlocksHtml || '<p>No scanner data recorded.</p>'}
         <div class="result">Result: ${test.result === 'fail' ? 'FAILED' : 'PASSED'}</div>
         <div class="sig"><div><strong>Inspector signature:</strong></div>${test.signature_data ? `<img src="${test.signature_data}" />` : ''}</div>
-      </body></html>`;
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `BrakeTest_${test.tw_code || test.test_date || 'export'}.html`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      `;
+      await renderHtmlToPdf({ innerHtml, cssText, filename: `BrakeTest_${test.tw_code || test.test_date || 'export'}.pdf` });
     }
 
     function openMultipackForm() {
@@ -3914,7 +3921,7 @@
           pdf_language: pdfLanguage
         };
         const pdfCustomer = state.enrichedCustomers.find(c => c.id === customerId);
-        downloadServiceFormPdf(formForPdf, items, savedPhotos || [], pdfCustomer);
+        await downloadServiceFormPdf(formForPdf, items, savedPhotos || [], pdfCustomer);
       } catch (pdfErr) {
         pdfDownloadFailed = true;
         console.error('PDF-download na opslaan mislukt:', pdfErr);
@@ -4095,7 +4102,7 @@
       } catch(e) { console.error(e); showToast(e?.message || 'Saving failed'); return; }
 
       try {
-        downloadWerkbonPdf({ ...payload, id: savedId }, customer);
+        await downloadWerkbonPdf({ ...payload, id: savedId }, customer);
       } catch (pdfErr) {
         console.error('PDF-download na opslaan mislukt:', pdfErr);
         showToast('Werkbon opgeslagen, maar PDF-download mislukte');
@@ -4157,7 +4164,7 @@
 
       on('openTimeRegistrationBtn', 'click', () => openTimeRegistrationDialog());
       on('openTimeReportBtn', 'click', () => openTimeReport());
-      on('exportTimeReportBtn', 'click', () => exportTimeReportPdf());
+      on('exportTimeReportBtn', 'click', async () => { try { await exportTimeReportPdf(); } catch(err) { console.error(err); showToast('PDF genereren mislukt'); } });
       on('openWerkbonBtn', 'click', async () => { try { await openWerkbonDialog(); } catch(err) { console.error(err); showToast('Werkbon laden mislukt'); } });
       on('werkbonNextBtn', 'click', () => werkbonGoToStep2());
       on('werkbonBackBtn', 'click', () => werkbonGoToStep1());
