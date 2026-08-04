@@ -2899,9 +2899,23 @@
     // Rendert een stukje HTML (+ eigen, geïsoleerde CSS) off-screen en zet het om naar
     // een echt, downloadbaar PDF-bestand. De CSS wordt bewust onder ".pdfroot" geschoold
     // zodat deze nooit de rest van de dashboard-styling kan beïnvloeden.
+    async function waitForImagesToLoad(container) {
+      const images = Array.from(container.querySelectorAll('img'));
+      if (!images.length) return;
+      await Promise.all(images.map(img => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise(resolve => {
+          const done = () => resolve();
+          img.addEventListener('load', done, { once: true });
+          img.addEventListener('error', done, { once: true });
+          setTimeout(done, 8000);
+        });
+      }));
+    }
+
     async function renderHtmlToPdf({ innerHtml, cssText, filename }) {
       const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
+      wrapper.style.position = 'absolute';
       wrapper.style.left = '-10000px';
       wrapper.style.top = '0';
       wrapper.style.width = '794px';
@@ -2918,6 +2932,7 @@
       document.body.appendChild(wrapper);
 
       try {
+        await waitForImagesToLoad(contentEl);
         await html2pdf().set({
           margin: 10,
           filename,
