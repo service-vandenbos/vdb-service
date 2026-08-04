@@ -2896,10 +2896,7 @@
       setTimeout(() => { initSignatureCanvas(); initSignatureCanvas('werkbonEngineerSignatureCanvas'); }, 100);
     }
 
-    // Rendert een stukje HTML (+ eigen, geïsoleerde CSS) in een volledig geïsoleerde
-    // iframe, zodat Tailwind CSS en het donkere dashboard-thema niet kunnen interfereren.
-    // De iframe heeft zijn eigen schone document — geen Tailwind, geen dark mode, puur
-    // de PDF-stijlen en content. Na renderen wordt de iframe weer opgeruimd.
+    // Wacht tot alle <img>-tags in de container geladen zijn (of gefaald/timeout).
     async function waitForImagesToLoad(container) {
       const images = Array.from(container.querySelectorAll('img'));
       if (!images.length) return;
@@ -2914,29 +2911,30 @@
       }));
     }
 
+    // Rendert HTML + CSS off-screen naar een downloadbaar PDF-bestand.
+    // Tailwind CDN zet agressieve resets op alle elementen (* { border-width:0 })
+    // en het donkere thema erft lichtgrijze tekstkleuren door. De pdfReset hieronder
+    // maakt dat ongedaan voor alles binnen .pdfroot, zodat de PDF-eigen CSS schoon
+    // kan werken zonder interferentie van het dashboard.
     async function renderHtmlToPdf({ innerHtml, cssText, filename }) {
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.left = '-10000px';
-      iframe.style.top = '0';
-      iframe.style.width = '794px';
-      iframe.style.height = '1200px';
-      iframe.style.border = 'none';
-      iframe.style.opacity = '0';
-      document.body.appendChild(iframe);
+      const pdfReset = '.pdfroot,.pdfroot *,.pdfroot *::before,.pdfroot *::after{all:revert;color:inherit;font-family:inherit;box-sizing:border-box;}.pdfroot{display:block;color:#111;background:#fff;}';
 
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-      iframeDoc.open();
-      iframeDoc.write(
-        '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-        cssText +
-        '</style></head><body style="margin:0;padding:0;background:#fff;"><div class="pdfroot">' +
-        innerHtml +
-        '</div></body></html>'
-      );
-      iframeDoc.close();
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-10000px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '794px';
 
-      const contentEl = iframeDoc.querySelector('.pdfroot');
+      const styleEl = document.createElement('style');
+      styleEl.textContent = pdfReset + cssText;
+
+      const contentEl = document.createElement('div');
+      contentEl.className = 'pdfroot';
+      contentEl.innerHTML = innerHtml;
+
+      wrapper.appendChild(styleEl);
+      wrapper.appendChild(contentEl);
+      document.body.appendChild(wrapper);
 
       try {
         await waitForImagesToLoad(contentEl);
@@ -2949,7 +2947,7 @@
           pagebreak: { mode: ['css', 'legacy'] }
         }).from(contentEl).save();
       } finally {
-        iframe.remove();
+        wrapper.remove();
       }
     }
 
