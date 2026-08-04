@@ -2896,9 +2896,10 @@
       setTimeout(() => { initSignatureCanvas(); initSignatureCanvas('werkbonEngineerSignatureCanvas'); }, 100);
     }
 
-    // Rendert een stukje HTML (+ eigen, geïsoleerde CSS) off-screen en zet het om naar
-    // een echt, downloadbaar PDF-bestand. De CSS wordt bewust onder ".pdfroot" geschoold
-    // zodat deze nooit de rest van de dashboard-styling kan beïnvloeden.
+    // Rendert een stukje HTML (+ eigen, geïsoleerde CSS) in een volledig geïsoleerde
+    // iframe, zodat Tailwind CSS en het donkere dashboard-thema niet kunnen interfereren.
+    // De iframe heeft zijn eigen schone document — geen Tailwind, geen dark mode, puur
+    // de PDF-stijlen en content. Na renderen wordt de iframe weer opgeruimd.
     async function waitForImagesToLoad(container) {
       const images = Array.from(container.querySelectorAll('img'));
       if (!images.length) return;
@@ -2914,22 +2915,28 @@
     }
 
     async function renderHtmlToPdf({ innerHtml, cssText, filename }) {
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'absolute';
-      wrapper.style.left = '-10000px';
-      wrapper.style.top = '0';
-      wrapper.style.width = '794px';
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-10000px';
+      iframe.style.top = '0';
+      iframe.style.width = '794px';
+      iframe.style.height = '1200px';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
+      document.body.appendChild(iframe);
 
-      const styleEl = document.createElement('style');
-      styleEl.textContent = cssText;
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+        cssText +
+        '</style></head><body style="margin:0;padding:0;background:#fff;"><div class="pdfroot">' +
+        innerHtml +
+        '</div></body></html>'
+      );
+      iframeDoc.close();
 
-      const contentEl = document.createElement('div');
-      contentEl.className = 'pdfroot';
-      contentEl.innerHTML = innerHtml;
-
-      wrapper.appendChild(styleEl);
-      wrapper.appendChild(contentEl);
-      document.body.appendChild(wrapper);
+      const contentEl = iframeDoc.querySelector('.pdfroot');
 
       try {
         await waitForImagesToLoad(contentEl);
@@ -2942,7 +2949,7 @@
           pagebreak: { mode: ['css', 'legacy'] }
         }).from(contentEl).save();
       } finally {
-        wrapper.remove();
+        iframe.remove();
       }
     }
 
