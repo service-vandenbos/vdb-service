@@ -1313,17 +1313,20 @@
       if (!dialog) return;
 
       dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) {
-          if (typeof onClose === 'function') onClose();
-          safeClose(dialogId);
-        }
-      });
+      if (e.target !== dialog) return;
+      if (dialog.hasAttribute('data-lock')) return;   // buiten-klik doet niets
+      if (typeof onClose === 'function') onClose();
+      safeClose(dialogId);
+    });
 
-      dialog.addEventListener('cancel', (e) => {
-        e.preventDefault();
-        if (typeof onClose === 'function') onClose();
-        safeClose(dialogId);
-      });
+    dialog.addEventListener('cancel', (e) => {
+      e.preventDefault();                              // Escape
+      if (dialog.hasAttribute('data-lock')) {
+        if (!confirm('Formulier sluiten? Ingevulde gegevens gaan verloren.')) return;
+      }
+      if (typeof onClose === 'function') onClose();
+      safeClose(dialogId);
+    });
     }
 
     function loadConfig() {
