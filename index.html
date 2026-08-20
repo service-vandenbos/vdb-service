@@ -2391,9 +2391,9 @@
       el('timeDialogMachine').textContent = `${machine?.machine_name || 'Onbekende machine'}${machine?.type ? ` · ${machine.type}` : ''} (bewerken)`;
       el('timeEngineerInput').value = reg.engineer_name || '';
       el('timeNoteInput').value = reg.note || '';
-      const totalMinutes = reg.duration_minutes || 0;
+      const totalMinutes = Math.round((reg.duration_minutes || 0) / 15) * 15;
       el('timeHoursInput').value = Math.floor(totalMinutes / 60);
-      el('timeMinutesInput').value = totalMinutes % 60;
+      el('timeMinutesInput').value = String(totalMinutes % 60);
       el('timerDisplay').textContent = '00:00:00';
       el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
@@ -4353,10 +4353,13 @@
         el('timerStartBtn').textContent = 'Opnieuw';
         el('timerStartBtn').classList.remove('hidden');
         const info = el('timerRoundedInfo');
-        info.textContent = `Afgerond op ${formatDuration(rounded)} (per 15 min)`;
+              info.textContent = `+${formatDuration(rounded)} toegevoegd (per 15 min)`;
         info.classList.remove('hidden');
-        el('timeHoursInput').value = Math.floor(rounded / 60);
-        el('timeMinutesInput').value = rounded % 60;
+              const prevH = parseInt(el('timeHoursInput').value, 10) || 0;
+      const prevM = parseInt(el('timeMinutesInput').value, 10) || 0;
+      const totaal = prevH * 60 + prevM + rounded;
+      el('timeHoursInput').value = Math.floor(totaal / 60);
+      el('timeMinutesInput').value = String(totaal % 60);
       });
 
       on('saveTimeBtn', 'click', async () => {
