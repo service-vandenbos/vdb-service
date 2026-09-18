@@ -623,6 +623,11 @@
           <div class="mt-1 text-sm text-slate-400">Overzicht van alle geregistreerde uren per machine per klant</div>
         </div>
         <div class="flex gap-2">
+          <select id="timeReportLang" class="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm">
+  <option value="nl">NL</option>
+  <option value="de">DE</option>
+  <option value="en">EN</option>
+</select>
           <button id="exportTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Exporteer als PDF</button>
           <button id="closeTimeReportBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
         </div>
@@ -2539,10 +2544,12 @@
         return;
       }
       const byCustomer = new Map();
+        const customerIdByName = new Map();
       data.forEach(reg => {
         const machine = state.machines.find(m => m.id === reg.machine_id);
         const customer = state.customers.find(c => c.id === reg.customer_id);
         const customerName = customer?.name || 'Onbekende klant';
+        customerIdByName.set(customerName, reg.customer_id);
         const machineName = machine?.machine_name || 'Onbekende machine';
         if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
         const byMachine = byCustomer.get(customerName);
@@ -2562,10 +2569,17 @@
           }).join('')}</div>`;
         });
         grandTotal += customerTotal;
-        html += `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4"><div class="flex items-center justify-between"><div class="text-lg font-semibold text-slate-100">${customerName}</div><div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div></div>${machineHtml}</div>`;
+        html += `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4"><div class="flex items-center justify-between"><div class="text-lg font-semibold text-slate-100">${customerName}</div><div class="flex items-center gap-3"><button data-pdf-customer="${customerIdByName.get(customerName) || ''}" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold hover:bg-white/10">PDF</button><div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div></div></div>${machineHtml}</div>`;
       });
       html += `<div class="rounded-[22px] border border-brand-500/30 bg-brand-500/10 p-4 flex items-center justify-between"><div class="font-semibold text-slate-100">Totaal alle klanten</div><div class="text-xl font-semibold text-brand-300">${formatDuration(grandTotal)}</div></div>`;
       container.innerHTML = html;
+      container.querySelectorAll('[data-pdf-customer]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!btn.dataset.pdfCustomer) { showToast('Klant onbekend'); return; }
+    try { await exportTimeReportPdf(btn.dataset.pdfCustomer); }
+    catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
+  });
+});
       container.querySelectorAll('[data-delete-time-reg]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!window.confirm('Weet je zeker dat je deze registratie wilt verwijderen?')) return;
@@ -2602,35 +2616,48 @@
       openModal('timeReportDialog');
     }
 
-    async function exportTimeReportPdf() {
-      const { data } = await state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false });
-      if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
-      const byCustomer = new Map();
-      data.forEach(reg => {
-        const machine = state.machines.find(m => m.id === reg.machine_id);
-        const customer = state.customers.find(c => c.id === reg.customer_id);
-        const customerName = customer?.name || 'Onbekende klant';
-        const machineName = machine?.machine_name || 'Onbekende machine';
-        if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
-        const byMachine = byCustomer.get(customerName);
-        if (!byMachine.has(machineName)) byMachine.set(machineName, []);
-        byMachine.get(machineName).push(reg);
+    async function exportTimeReportPdf(onlyCustomerId = null) {
+  const TRS = {
+    nl: { title: 'Software Uren 2026 — Van den Bos Robotics', totalAll: 'Totaal alle klanten', total: 'Totaal', unknownCustomer: 'Onbekende klant', unknownMachine: 'Onbekende machine', h: 'u', m: 'min', locale: 'nl-NL', file: 'Software_Uren_2026' },
+    de: { title: 'Software-Stunden 2026 — Van den Bos Robotics', totalAll: 'Gesamt alle Kunden', total: 'Gesamt', unknownCustomer: 'Unbekannter Kunde', unknownMachine: 'Unbekannte Maschine', h: ' Std.', m: ' Min.', locale: 'de-DE', file: 'Software_Stunden_2026' },
+    en: { title: 'Software Hours 2026 — Van den Bos Robotics', totalAll: 'Total all customers', total: 'Total', unknownCustomer: 'Unknown customer', unknownMachine: 'Unknown machine', h: 'h', m: 'min', locale: 'en-GB', file: 'Software_Hours_2026' }
+  };
+  const L = TRS[el('timeReportLang')?.value] || TRS.nl;
+  const fmtDur = (min) => { const t = Math.round(min || 0); const h = Math.floor(t / 60), m = t % 60; return h ? `${h}${L.h} ${m}${L.m}` : `${m}${L.m}`; };
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString(L.locale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  let q = state.supabase.from('time_registrations').select('*').order('created_at', { ascending: false });
+  if (onlyCustomerId) q = q.eq('customer_id', onlyCustomerId);
+  const { data } = await q;
+  if (!data?.length) { showToast('Geen registraties om te exporteren'); return; }
+  const byCustomer = new Map();
+  data.forEach(reg => {
+    const machine = state.machines.find(m => m.id === reg.machine_id);
+    const customer = state.customers.find(c => c.id === reg.customer_id);
+    const customerName = customer?.name || L.unknownCustomer;
+    const machineName = machine?.machine_name || L.unknownMachine;
+    if (!byCustomer.has(customerName)) byCustomer.set(customerName, new Map());
+    const byMachine = byCustomer.get(customerName);
+    if (!byMachine.has(machineName)) byMachine.set(machineName, []);
+    byMachine.get(machineName).push(reg);
+  });
+  let grandTotal = 0; let bodyHtml = '';
+  byCustomer.forEach((machines, customerName) => {
+    let customerTotal = 0; let rows = '';
+    machines.forEach((regs, machineName) => {
+      regs.forEach(r => {
+        customerTotal += (r.duration_minutes || 0);
+        rows += `<tr><td class="machine">${machineName}</td><td class="duration">${fmtDur(r.duration_minutes)}</td><td class="date">${fmtDate(r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
       });
-      let grandTotal = 0; let bodyHtml = '';
-      byCustomer.forEach((machines, customerName) => {
-        let customerTotal = 0; let rows = '';
-        machines.forEach((regs, machineName) => {
-          regs.forEach(r => {
-            customerTotal += (r.duration_minutes || 0);
-            rows += `<tr><td class="machine">${machineName}</td><td class="duration">${formatDuration(r.duration_minutes || 0)}</td><td class="date">${formatDate(r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
-          });
-        });
-        grandTotal += customerTotal;
-        bodyHtml += `<div class="customer-block"><div class="customer-header"><span class="customer-name">${customerName}</span><span class="customer-total">${formatDuration(customerTotal)}</span></div><table><tbody>${rows}</tbody></table></div>`;
-      });
+    });
+    grandTotal += customerTotal;
+    bodyHtml += `<div class="customer-block"><div class="customer-header"><span class="customer-name">${customerName}</span><span class="customer-total">${fmtDur(customerTotal)}</span></div><table><tbody>${rows}</tbody></table></div>`;
+  });
       const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;background:#fff;}.pdfroot h1{font-size:16px;font-weight:bold;margin-bottom:6px;}.pdfroot .grand-total{text-align:right;font-size:12px;font-weight:bold;color:#1978f5;margin-bottom:20px;}.pdfroot .customer-block{margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.pdfroot .customer-header{display:flex;justify-content:space-between;background:#f4f4f4;padding:8px 12px;font-weight:bold;font-size:12px;}.pdfroot .customer-total{color:#1978f5;}.pdfroot table{width:100%;border-collapse:collapse;}.pdfroot td{padding:6px 12px;border-top:1px solid #eee;vertical-align:top;}.pdfroot td.machine{font-weight:bold;width:30%;}.pdfroot td.duration{width:12%;color:#333;}.pdfroot td.date{width:20%;color:#555;}.pdfroot td.engineer{color:#555;}`;
-      const innerHtml = `<h1>Software Uren 2026 — Van den Bos Robotics</h1><div class="grand-total">Totaal alle klanten: ${formatDuration(grandTotal)}</div>${bodyHtml}`;
-      await renderHtmlToPdf({ innerHtml, cssText, filename: 'Software_Uren_2026.pdf' });
+        const singleCustomer = onlyCustomerId ? [...byCustomer.keys()][0] : null;
+  const innerHtml = `<h1>${L.title}</h1><div class="grand-total">${onlyCustomerId ? L.total : L.totalAll}: ${fmtDur(grandTotal)}</div>${bodyHtml}`;
+  const safeName = singleCustomer ? '_' + singleCustomer.replace(/[^a-z0-9]+/gi, '_') : '';
+  await renderHtmlToPdf({ innerHtml, cssText, filename: `${L.file}${safeName}.pdf` });
     }
 
     async function openWerkbonHistoryDialog() {
