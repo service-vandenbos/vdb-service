@@ -3268,9 +3268,64 @@ container.innerHTML = workOrders.map(wo => {
     function itemHint(item) {
       return typeof item === 'object' && item?.description ? item.description : '';
     }
+const SF_TRANSLATIONS = {
+  '1. Smart gripper': { de: '1. Smart-Greifer', en: '1. Smart gripper' },
+  'Zuignappen beschadigd': { de: 'Saugnäpfe beschädigt?', en: 'Suction cups damaged?' },
+  'Positie en nauwkeurigheid': { de: 'Position und Genauigkeit', en: 'Position and accuracy' },
+  'alle Magneetventielen los halen en schoon blazen met perslucht': { de: 'Alle Magnetventile ausbauen und mit Druckluft ausblasen', en: 'Remove all solenoid valves and blow clean with compressed air' },
+  'indien nodig pakking bij magneetventiel vervangen': { de: 'Dichtung am Magnetventil bei Bedarf ersetzen', en: 'Replace solenoid valve gasket if necessary' },
+  'aluminium gripper plaat doorblazen': { de: 'Aluminium-Greiferplatte ausblasen', en: 'Blow out aluminium gripper plate' },
+  'aluminium gripper plaat controleren op lijm resten in de kanalen': { de: 'Aluminium-Greiferplatte auf Klebereste in den Kanälen prüfen', en: 'Check aluminium gripper plate for glue residue in the channels' },
+  'Pneumatische componenten lek?': { de: 'Pneumatikkomponenten undicht?', en: 'Pneumatic components leaking?' },
+  'Vocht-drukregelaar lek/kapot?': { de: 'Filterregler undicht/defekt?', en: 'Filter regulator leaking/defective?' },
+  'stalen frame recht en niet gescheurd': { de: 'Stahlrahmen gerade und ohne Risse', en: 'Steel frame straight and not cracked' },
+  'Algehele staat': { de: 'Allgemeiner Zustand', en: 'General condition' },
+  '2. Vacuümsysteem': { de: '2. Vakuumsystem', en: '2. Vacuum system' },
+  'Vacuümslang lek?': { de: 'Vakuumschlauch undicht?', en: 'Vacuum hose leaking?' },
+  'Vacuümfilter altijd vervangen en filter achterlaten als bewijs': { de: 'Vakuumfilter immer ersetzen und alten Filter als Nachweis hinterlassen', en: 'Always replace vacuum filter and leave old filter as proof' },
+  '5. Sensoren': { de: '5. Sensoren', en: '5. Sensors' },
+  'Inductieve sensoren vast?': { de: 'Induktive Sensoren fest?', en: 'Inductive sensors secure?' },
+  'Reflectiesensoren vast/schoon': { de: 'Reflexsensoren fest/sauber', en: 'Reflective sensors secure/clean' },
+  'Fotocel schoon?': { de: 'Lichtschranke sauber?', en: 'Photocell clean?' },
+  '6. Noodcircuit': { de: '6. Not-Halt-Kreis', en: '6. Emergency stop circuit' },
+  'Werking lichtscherm': { de: 'Funktion Lichtvorhang', en: 'Light curtain function' },
+  'lichtscherm armpjes controleren': { de: 'Halterungen Lichtvorhang prüfen', en: 'Check light curtain brackets' },
+  'lichtscherm mag niet afschakelen door trilling': { de: 'Lichtvorhang darf nicht durch Vibration auslösen', en: 'Light curtain must not trip due to vibration' },
+  'Werking noodstop': { de: 'Funktion Not-Halt', en: 'Emergency stop function' },
+  'Totale staat': { de: 'Gesamtzustand', en: 'Overall condition' },
+  '7. Elektrische schakelkast/HMI': { de: '7. Schaltschrank/HMI', en: '7. Electrical cabinet/HMI' },
+  'Staat schakelkast': { de: 'Zustand Schaltschrank', en: 'Cabinet condition' },
+  'schakelkast filter vervangen': { de: 'Schaltschrankfilter ersetzen', en: 'Replace cabinet filter' },
+  'backup pakpatroonen': { de: 'Backup Packmuster', en: 'Backup packing patterns' },
+  'Werking knoppen HMI': { de: 'Funktion Tasten HMI', en: 'HMI button function' },
+  '8. Robot': { de: '8. Roboter', en: '8. Robot' },
+  'Boutverbindingen': { de: 'Schraubverbindungen', en: 'Bolted connections' },
+  'robotvoet ankers controle': { de: 'Anker Roboterfuß prüfen', en: 'Check robot base anchors' },
+  'Serienummer robot': { de: 'Seriennummer Roboter', en: 'Robot serial number' },
+  'Serienummer schakelkast': { de: 'Seriennummer Schaltschrank', en: 'Cabinet serial number' },
+  'centreerunit': { de: 'Zentriereinheit', en: 'Centering unit' },
+  'Plastic belt kapot?': { de: 'Kunststoffband defekt?', en: 'Plastic belt damaged?' },
+  'tandriemen indien nodig vervangen': { de: 'Zahnriemen bei Bedarf ersetzen', en: 'Replace timing belts if necessary' },
+  'lagers tandwielen controleren/vervangen': { de: 'Lager Zahnräder prüfen/ersetzen', en: 'Check/replace gear bearings' },
+  'alle Lagers smeren (met vetspuit)': { de: 'Alle Lager schmieren (mit Fettpresse)', en: 'Grease all bearings (with grease gun)' },
+  'Centreereenheid lineaire rail lagers controleren/afstellen/vervangen': { de: 'Linearschienenlager Zentriereinheit prüfen/einstellen/ersetzen', en: 'Check/adjust/replace centering unit linear rail bearings' },
+  'Stopplaat lineaire rail lagers controleren/afstellen/vervangen': { de: 'Linearschienenlager Anschlagplatte prüfen/einstellen/ersetzen', en: 'Check/adjust/replace stop plate linear rail bearings' },
+  'Smering lineaire rail': { de: 'Schmierung Linearschiene', en: 'Linear rail lubrication' },
+  'verzonken bouten centreerbladen vast?': { de: 'Senkschrauben Zentrierbleche fest?', en: 'Countersunk bolts on centering plates secure?' },
+  'Staat bekabeling': { de: 'Zustand Verkabelung', en: 'Cabling condition' },
+  'motoren rubbers goed? bouten vast? lekkage?': { de: 'Motorgummis in Ordnung? Schrauben fest? Undicht?', en: 'Motor rubbers OK? Bolts tight? Leaks?' },
+  'af transport': { de: 'Abtransport', en: 'Outfeed conveyor' },
+  'plastic band nog goed': { de: 'Kunststoffband in Ordnung', en: 'Plastic belt OK' },
+  'motoren lek/bouten vast': { de: 'Motoren undicht/Schrauben fest', en: 'Motors leaking/bolts tight' }
+};
+const SF_TR_MAP = Object.fromEntries(Object.entries(SF_TRANSLATIONS).map(([k, v]) => [k.toLowerCase().replace(/\s+/g, ' ').trim(), v]));
+
 function trField(obj, field, lang) {
-  if (lang && lang !== 'nl' && obj && typeof obj === 'object' && obj[field + '_' + lang]) return obj[field + '_' + lang];
-  return null;
+  if (!lang || lang === 'nl') return null;
+  if (obj && typeof obj === 'object' && obj[field + '_' + lang]) return obj[field + '_' + lang];
+  const nl = typeof obj === 'string' ? obj : (obj && obj[field]);
+  const hit = nl ? SF_TR_MAP[String(nl).toLowerCase().replace(/\s+/g, ' ').trim()] : null;
+  return hit && hit[lang] ? hit[lang] : null;
 }
     function renderServiceFormSection(section) {
       return `
