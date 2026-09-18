@@ -4102,7 +4102,13 @@ function trField(obj, field, lang) {
       canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, { passive: false });
       canvas.addEventListener('touchend', () => { drawing = false; });
     }
-
+    
+function isCanvasBlank(canvas) {
+  if (!canvas || !canvas.width || !canvas.height) return true;
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) return false; }
+  return true;
+}
     async function exportWerkbonPdf() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) return;
@@ -4145,6 +4151,20 @@ function trField(obj, field, lang) {
         other_parts: otherParts || null,
         pdf_language: pdfLanguage
       };
+      if (state.editingWerkbonId) {
+  const custSigBlank = isCanvasBlank(el('werkbonSignatureCanvas'));
+  const engSigBlank = isCanvasBlank(el('werkbonEngineerSignatureCanvas'));
+  if (custSigBlank || engSigBlank) {
+    const { data: existingSig } = await state.supabase.from('work_orders').select('signature_data, engineer_signature_data').eq('id', state.editingWerkbonId).single();
+    if (existingSig) {
+      if (custSigBlank) payload.signature_data = existingSig.signature_data;
+      if (engSigBlank) payload.engineer_signature_data = existingSig.engineer_signature_data;
+    } else {
+      if (custSigBlank) delete payload.signature_data;
+      if (engSigBlank) delete payload.engineer_signature_data;
+    }
+  }
+}
       let savedId = state.editingWerkbonId;
       try {
         const serviceMonth = date ? `${String(new Date(date).getMonth() + 1).padStart(2, '0')}-${new Date(date).getFullYear()}` : getCurrentServiceMonth();
