@@ -2568,7 +2568,7 @@
           }).join('')}</div>`;
         });
         grandTotal += customerTotal;
-        html += `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4"><div class="flex items-center justify-between"><div class="text-lg font-semibold text-slate-100">${customerName}</div><div class="flex items-center gap-3"><button data-pdf-customer="${customerIdByName.get(customerName) || ''}" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold hover:bg-white/10">PDF</button><div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div></div></div>${machineHtml}</div>`;
+        html += `<div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4"><div class="flex items-center justify-between"><div class="text-lg font-semibold text-slate-100">${customerName}</div><div class="flex items-center gap-3"><button data-pdf-customer="${customerIdByName.get(customerName) || ''}" class="rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-400">PDF</button><div class="text-lg font-semibold text-status-green">${formatDuration(customerTotal)}</div></div></div>${machineHtml}</div>`;
       });
       html += `<div class="rounded-[22px] border border-brand-500/30 bg-brand-500/10 p-4 flex items-center justify-between"><div class="font-semibold text-slate-100">Totaal alle klanten</div><div class="text-xl font-semibold text-brand-300">${formatDuration(grandTotal)}</div></div>`;
       container.innerHTML = html;
