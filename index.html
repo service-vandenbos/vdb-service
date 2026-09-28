@@ -871,14 +871,14 @@
   </dialog>
 
   <!-- Service formulieren: keuze -->
-  <dialog id="serviceFormsDialog" class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+ <dialog id="serviceFormsDialog" data-lock class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
     <div class="border-b border-white/10 px-6 py-4">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold">Service formulieren</h3>
           <div id="serviceFormsCustomerLabel" class="mt-1 text-sm text-slate-400">-</div>
         </div>
-        <button id="closeServiceFormsBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        <button id="closeServiceFormsBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
       </div>
     </div>
     <div class="scrollbar-thin max-h-[75vh] overflow-auto px-6 py-5 space-y-3">
@@ -896,7 +896,7 @@
           <h3 class="text-lg font-semibold">Service</h3>
           <div id="serviceFormCustomerLabel" class="mt-1 text-sm text-slate-400">-</div>
         </div>
-        <button id="closeServiceFormBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        <button id="closeServiceFormBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
       </div>
     </div>
     <div class="scrollbar-thin max-h-[85vh] overflow-auto px-6 py-5 space-y-6">
