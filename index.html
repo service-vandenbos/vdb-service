@@ -828,13 +828,13 @@
     <div id="werkbonBrowsePartsList" class="scrollbar-thin max-h-[70vh] overflow-auto px-6 py-5 space-y-1"></div>
   </dialog>
 
-  <dialog id="documentenDialog" class="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+  <dialog id="documentenDialog" data-lock="true" class="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
     <div class="border-b border-white/10 px-6 py-4">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 id="documentenDialogTitle" class="text-lg font-semibold">Documenten</h3>
         </div>
-        <button id="closeDocumentenBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+        <button id="closeDocumentenBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
       </div>
     </div>
     <div id="documentenLijst" class="px-6 py-5 space-y-3">
