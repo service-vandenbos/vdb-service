@@ -544,7 +544,10 @@
           <h3 class="text-lg font-semibold">Tijdregistratie</h3>
           <div id="timeDialogMachine" class="mt-1 text-sm text-slate-400">-</div>
         </div>
-        <button id="closeTimeBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
+        <div class="flex items-center gap-2">
+          <button id="minimizeTimeBtn" class="hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10">Minimaliseren</button>
+          <button id="closeTimeBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
+        </div>
       </div>
     </div>
     <div class="space-y-4 px-6 py-5">
@@ -978,6 +981,15 @@
 
   <div id="toast" class="pointer-events-none fixed bottom-4 right-4 z-50 hidden rounded-2xl border border-white/10 bg-slate-900/95 px-4 py-3 text-sm shadow-panel"></div>
 
+  <!-- Lopende timer: blijft links onderin staan tot Uitchecken -->
+  <button id="timerWidget" type="button" class="hidden fixed bottom-4 left-4 z-50 items-center gap-3 rounded-2xl bg-brand-500 px-4 py-3 text-left text-white shadow-lg shadow-black/40 transition hover:bg-brand-400">
+    <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-white animate-pulse"></span>
+    <span class="min-w-0">
+      <span id="timerWidgetMachine" class="block max-w-[14rem] truncate text-xs text-white/80">-</span>
+      <span id="timerWidgetTime" class="block text-lg font-semibold tabular-nums">00:00:00</span>
+    </span>
+  </button>
+
   <script>
     const STORAGE_KEY = 'vdb_dashboard_config';
     const DEFAULT_TABLES = {
@@ -1326,7 +1338,7 @@
 
     dialog.addEventListener('cancel', (e) => {
       e.preventDefault();                              // Escape
-      if (dialog.hasAttribute('data-lock')) {
+      if (dialog.hasAttribute('data-lock') && !(dialogId === 'timeDialog' && isTimerRunning())) {
         if (!confirm('Formulier sluiten? Ingevulde gegevens gaan verloren.')) return;
       }
       if (typeof onClose === 'function') onClose();
@@ -2349,6 +2361,31 @@
       });
     }
 
+    function isTimerRunning() {
+      return !!state.timerStartTime;
+    }
+
+    function showTimerWidget() {
+      const w = el('timerWidget');
+      if (!w) return;
+      el('timerWidgetMachine').textContent = el('timeDialogMachine')?.textContent || '-';
+      el('timerWidgetTime').textContent = el('timerDisplay')?.textContent || '00:00:00';
+      w.classList.remove('hidden');
+      w.classList.add('flex');
+    }
+
+    function hideTimerWidget() {
+      const w = el('timerWidget');
+      if (!w) return;
+      w.classList.add('hidden');
+      w.classList.remove('flex');
+    }
+
+    function minimizeTimeDialog() {
+      showTimerWidget();
+      safeClose('timeDialog');
+    }
+
     function roundToQuarter(minutes) {
       return Math.ceil(minutes / 15) * 15;
     }
@@ -2360,6 +2397,7 @@
     }
 
     function openTimeDialog(machineId) {
+      if (isTimerRunning()) { showToast('Er loopt nog een timer. Check eerst uit.'); hideTimerWidget(); openModal('timeDialog'); return; }
       const machine = state.machines.find(m => m.id === machineId);
       if (!machine) return;
       state.timerMachineId = machineId;
@@ -2373,6 +2411,7 @@
       el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
       el('timerStopBtn').classList.add('hidden');
+      el('minimizeTimeBtn').classList.add('hidden');
       el('timerRoundedInfo').classList.add('hidden');
       el('monteurFieldsWrap').classList.add('hidden');
       el('toggleMonteurBtn').textContent = '+ Monteur inzetten (noodgeval)';
@@ -2386,6 +2425,7 @@
     }
 
     async function openTimeDialogForEdit(regId) {
+      if (isTimerRunning()) { showToast('Er loopt nog een timer. Check eerst uit.'); hideTimerWidget(); openModal('timeDialog'); return; }
       const { data: reg, error } = await state.supabase.from('time_registrations').select('*').eq('id', regId).single();
       if (error || !reg) { showToast('Registratie laden mislukt'); return; }
       const machine = state.machines.find(m => m.id === reg.machine_id);
@@ -2402,6 +2442,7 @@
       el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
       el('timerStopBtn').classList.add('hidden');
+      el('minimizeTimeBtn').classList.add('hidden');
       el('timerRoundedInfo').classList.add('hidden');
       if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
       state.timerStartTime = null;
@@ -2458,6 +2499,7 @@
     }
 
     async function saveTimeRegistration() {
+      if (isTimerRunning()) throw new Error('Timer loopt nog. Druk eerst op Uitchecken.');
       const machineId = state.timerMachineId;
       if (!machineId) throw new Error('Geen machine geselecteerd');
       const machine = state.machines.find(m => m.id === machineId);
@@ -4444,12 +4486,16 @@ function isCanvasBlank(canvas) {
         el('timerStartBtn').classList.add('hidden');
         el('timerStopBtn').classList.remove('hidden');
         el('timerRoundedInfo').classList.add('hidden');
+        el('minimizeTimeBtn').classList.remove('hidden');
+        if (state.timerInterval) clearInterval(state.timerInterval);
         state.timerInterval = setInterval(() => {
           const elapsed = Math.floor((Date.now() - state.timerStartTime) / 1000);
           const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
           const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
           const s = String(elapsed % 60).padStart(2, '0');
           el('timerDisplay').textContent = `${h}:${m}:${s}`;
+          const wt = el('timerWidgetTime');
+          if (wt) wt.textContent = `${h}:${m}:${s}`;
         }, 1000);
       });
 
@@ -4460,6 +4506,8 @@ function isCanvasBlank(canvas) {
         const elapsed = Math.floor((Date.now() - state.timerStartTime) / 60000);
         const rounded = roundToQuarter(Math.max(1, elapsed));
         state.timerStartTime = null;
+        hideTimerWidget();
+        el('minimizeTimeBtn').classList.add('hidden');
         el('timerStopBtn').classList.add('hidden');
         el('timerStartBtn').textContent = 'Opnieuw';
         el('timerStartBtn').classList.remove('hidden');
@@ -4487,12 +4535,22 @@ function isCanvasBlank(canvas) {
       });
 
       on('cancelTimeBtn', 'click', () => {
+        if (isTimerRunning() && !confirm('De timer loopt nog. Timer stoppen en registratie annuleren?')) return;
         if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
         state.timerStartTime = null;
+        hideTimerWidget();
+        el('minimizeTimeBtn').classList.add('hidden');
         safeClose('timeDialog');
       });
 
+      on('minimizeTimeBtn', 'click', () => minimizeTimeDialog());
+      on('timerWidget', 'click', () => {
+        hideTimerWidget();
+        openModal('timeDialog');
+      });
+
       wireDialogClose('timeDialog', 'closeTimeBtn', () => {
+        if (isTimerRunning()) { showTimerWidget(); return; }   // timer loopt door, blok links onderin
         if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
         state.timerStartTime = null;
       });
@@ -4692,5 +4750,6 @@ function isCanvasBlank(canvas) {
       showToast(err?.message || 'Kon dashboard niet laden');
     });
   </script>
+
 </body>
 </html>
