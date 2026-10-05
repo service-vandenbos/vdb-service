@@ -3607,7 +3607,7 @@ function trField(obj, field, lang) {
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
                    ${sectionPhotos.map(p => `<div style="width:calc(33.33% - 6px);height:170px;border:1px solid #ccc;border-radius:4px;background:#f4f4f4 url('${p.photo_url}') center / contain no-repeat;"></div>`).join('')}
         </div>` : '';
-      return `<div class="pdf-avoid" style="margin-bottom:20px;">
+        return `<div class="pdf-avoid" style="padding-top:18px;padding-bottom:2px;">
         <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${sectionTitleTr || section.title}</div>
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr style="background:#e8f5e9;">
