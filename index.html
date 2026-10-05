@@ -3013,7 +3013,7 @@ container.innerHTML = workOrders.map(wo => {
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] }
+          pagebreak: { mode: ['css', 'legacy'], avoid: ['.pdf-avoid'] }
         }).from(contentEl).save();
       } finally {
         wrapper.remove();
@@ -3607,7 +3607,7 @@ function trField(obj, field, lang) {
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
                    ${sectionPhotos.map(p => `<div style="width:calc(33.33% - 6px);height:170px;border:1px solid #ccc;border-radius:4px;background:#f4f4f4 url('${p.photo_url}') center / contain no-repeat;"></div>`).join('')}
         </div>` : '';
-      return `<div style="margin-bottom:20px;">
+      return `<div class="pdf-avoid" style="margin-bottom:20px;">
         <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${sectionTitleTr || section.title}</div>
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr style="background:#e8f5e9;">
@@ -3656,7 +3656,7 @@ function trField(obj, field, lang) {
         }
         return extra;
       })()}
-          <div style="border-top:2px solid #22b455;margin-top:32px;padding-top:12px;display:flex;justify-content:flex-end;">
+      <div class="pdf-avoid" style="border-top:2px solid #22b455;margin-top:32px;;padding-top:12px;display:flex;justify-content:flex-end;">
       <div style="display:inline-grid;grid-template-columns:auto auto;column-gap:8px;row-gap:5px;line-height:1;">
         <div style="font-size:20px;font-weight:900;color:#0b1220;">VAN DEN</div>
         <div style="font-size:20px;font-weight:900;color:#22b455;">BOS</div>
