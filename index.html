@@ -3440,7 +3440,8 @@ function trField(obj, field, lang) {
       const container = el('serviceFormSections');
       const allSections = getSectionsForMachine(state.serviceFormMachineId);
       const mandatory = allSections.filter(s => !s.optional);
-      const optional = allSections.filter(s => s.optional);
+      const optional = allSections.filter(s => s.optional && s.group !== 'electro');
+      const electro = allSections.filter(s => s.optional && s.group === 'electro');
 
       let html = mandatory.map(renderServiceFormSection).join('');
       if (optional.length) {
@@ -3453,6 +3454,16 @@ function trField(obj, field, lang) {
           </div>
           <div id="sfOptionalSections" class="space-y-5 hidden">${optional.map(renderServiceFormSection).join('')}</div>`;
       }
+          if (electro.length) {
+      html += `
+        <div class="rounded-[22px] border border-dashed border-white/15 bg-white/[0.02] p-5">
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-200">
+            <input type="checkbox" id="sfElectroToggle" class="h-4 w-4 accent-brand-500" />
+            Kuka Electro onderhoud
+          </label>
+        </div>
+        <div id="sfElectroSections" class="space-y-5 hidden">${electro.map(renderServiceFormSection).join('')}</div>`;
+    }
       container.innerHTML = html;
 
       const toggle = el('sfOptionalToggle');
@@ -3461,7 +3472,12 @@ function trField(obj, field, lang) {
           el('sfOptionalSections').classList.toggle('hidden', !toggle.checked);
         });
       }
-
+    const electroToggle = el('sfElectroToggle');
+    if (electroToggle) {
+      electroToggle.addEventListener('change', () => {
+        el('sfElectroSections').classList.toggle('hidden', !electroToggle.checked);
+      });
+    }
       container.querySelectorAll('input[type="file"]').forEach(input => {
         input.addEventListener('change', async (e) => {
           const sectionKey = e.target.dataset.sfPhoto;
@@ -3671,14 +3687,23 @@ function trField(obj, field, lang) {
       }
 
       container.innerHTML = machinesForCustomer.map(machine => {
-        const hasOptionalSections = getSectionsForMachine(machine.id).some(s => s.optional);
-        const isTw = isTransferwagenMachine(machine);
-        const rowsHtml = `
-          ${hasOptionalSections ? `
-          <label class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-            <input type="checkbox" data-sf-extra="${machine.id}" class="h-4 w-4 accent-brand-500" />
-            Kuka basis inspectie
-          </label>` : ''}
+            const machineSections = getSectionsForMachine(machine.id);
+    const hasOptionalSections = machineSections.some(s => s.optional && s.group !== 'electro');
+    const hasElectroSections = machineSections.some(s => s.optional && s.group === 'electro');
+    const isTw = isTransferwagenMachine(machine);
+    const rowsHtml = `
+      <div class="flex flex-wrap gap-x-5">
+        ${hasOptionalSections ? `
+        <label class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+          <input type="checkbox" data-sf-extra="${machine.id}" class="h-4 w-4 accent-brand-500" />
+          Kuka basis inspectie
+        </label>` : ''}
+        ${hasElectroSections ? `
+        <label class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+          <input type="checkbox" data-sf-electro="${machine.id}" class="h-4 w-4 accent-brand-500" />
+          Kuka Electro
+        </label>` : ''}
+      </div>
           ${isTw ? `
           <label class="flex items-center gap-2 text-xs text-slate-400 mb-1">
             <input type="checkbox" data-bt-extra="${machine.id}" class="h-4 w-4 accent-brand-500" />
@@ -3703,13 +3728,14 @@ function trField(obj, field, lang) {
             openBrakeTestDialog(btn.dataset.sfNew);
             return;
           }
-          const extraCheckbox = container.querySelector(`[data-sf-extra="${btn.dataset.sfNew}"]`);
-          openServiceFormForMachine(btn.dataset.sfNew, !!extraCheckbox?.checked);
+        const extraCheckbox = container.querySelector(`[data-sf-extra="${btn.dataset.sfNew}"]`);
+        const electroCheckbox = container.querySelector(`[data-sf-electro="${btn.dataset.sfNew}"]`);
+        openServiceFormForMachine(btn.dataset.sfNew, !!extraCheckbox?.checked, !!electroCheckbox?.checked);
         });
       });
     }
 
-    function openServiceFormForMachine(machineId, presetExtra = false) {
+      function openServiceFormForMachine(machineId, presetExtra = false, presetElectro = false) {
       const machine = state.machines.find(m => m.id === machineId);
       if (!machine) { showToast('Machine niet gevonden'); return; }
       const customer = state.enrichedCustomers.find(c => c.id === machine.customer_id);
@@ -3728,6 +3754,10 @@ function trField(obj, field, lang) {
       if (presetExtra && el('sfOptionalToggle')) {
         el('sfOptionalToggle').checked = true;
         el('sfOptionalSections')?.classList.remove('hidden');
+      }
+      if (presetElectro && el('sfElectroToggle')) {
+      el('sfElectroToggle').checked = true;
+      el('sfElectroSections')?.classList.remove('hidden');
       }
       el('sfGeneralRows').innerHTML = '';
       el('sfRecommendRows').innerHTML = '';
