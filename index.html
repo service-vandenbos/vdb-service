@@ -3605,7 +3605,7 @@ function trField(obj, field, lang) {
       const sectionPhotos = (photos || []).filter(p => p.section === section.key);
       const photosHtml = sectionPhotos.length ? `
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
-          ${sectionPhotos.map(p => `<img src="${p.photo_url}" style="width:calc(33.33% - 6px);height:auto;border:1px solid #ccc;border-radius:4px;" />`).join('')}
+                   ${sectionPhotos.map(p => `<div style="width:calc(33.33% - 6px);height:170px;border:1px solid #ccc;border-radius:4px;background:#f4f4f4 url('${p.photo_url}') center / contain no-repeat;"></div>`).join('')}
         </div>` : '';
       return `<div style="margin-bottom:20px;">
         <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${sectionTitleTr || section.title}</div>
