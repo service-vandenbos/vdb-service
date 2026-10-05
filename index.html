@@ -3605,7 +3605,7 @@ function trField(obj, field, lang) {
       const sectionPhotos = (photos || []).filter(p => p.section === section.key);
       const photosHtml = sectionPhotos.length ? `
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
-          ${sectionPhotos.map(p => `<img src="${p.photo_url}" style="width:150px;height:150px;object-fit:cover;border:1px solid #ccc;border-radius:4px;" />`).join('')}
+          ${sectionPhotos.map(p => `<img src="${p.photo_url}" style="width:calc(33.33% - 6px);height:auto;border:1px solid #ccc;border-radius:4px;" />`).join('')}
         </div>` : '';
       return `<div style="margin-bottom:20px;">
         <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${sectionTitleTr || section.title}</div>
@@ -3628,13 +3628,14 @@ function trField(obj, field, lang) {
 
       const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;background:#fff;}`;
       const innerHtml = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
-        <div>
-          <div style="font-size:20px;font-weight:700;">VAN DEN <span style="color:#1a7a3c;">BOS</span></div>
-          <div style="font-size:10px;color:#555;">robotics</div>
-        </div>
-        <div style="text-align:right;font-size:14px;font-weight:700;text-decoration:underline;">${t.title}</div>
+          <div style="padding-bottom:12px;border-bottom:2px solid #22b455;margin-bottom:20px;">
+      <div style="display:inline-grid;grid-template-columns:auto auto;column-gap:10px;row-gap:6px;line-height:1;">
+        <div style="font-size:26px;font-weight:900;color:#0b1220;">VAN DEN</div>
+        <div style="font-size:26px;font-weight:900;color:#22b455;">BOS</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:0 14px 0 6px;"><span>r</span><span>o</span><span>b</span><span>o</span><span>t</span><span>i</span><span>c</span><span>s</span></div>
+        <div style="font-size:13px;font-weight:700;color:#0b1220;">${t.title}</div>
       </div>
+    </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #ddd;">
         <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.customer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${customer?.name || '—'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.date}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.form_date || '—'}</td></tr>
         <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineName}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name || 'MP'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineNameCustomer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name_customer || '—'}</td></tr>
@@ -3655,6 +3656,14 @@ function trField(obj, field, lang) {
         }
         return extra;
       })()}
+          <div style="border-top:2px solid #22b455;margin-top:32px;padding-top:12px;display:flex;justify-content:flex-end;">
+      <div style="display:inline-grid;grid-template-columns:auto auto;column-gap:8px;row-gap:5px;line-height:1;">
+        <div style="font-size:20px;font-weight:900;color:#0b1220;">VAN DEN</div>
+        <div style="font-size:20px;font-weight:900;color:#22b455;">BOS</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#444;padding:0 11px 0 5px;"><span>r</span><span>o</span><span>b</span><span>o</span><span>t</span><span>i</span><span>c</span><span>s</span></div>
+        <div style="font-size:11px;font-weight:700;color:#0b1220;">${t.title}</div>
+      </div>
+    </div>
       `;
 
       await renderHtmlToPdf({ innerHtml, cssText, filename: `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.pdf` });
