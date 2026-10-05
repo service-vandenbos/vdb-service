@@ -4050,10 +4050,12 @@ function trField(obj, field, lang) {
         formId = formData.id;
       }
 
-      const optionalToggleOn = !!el('sfOptionalToggle')?.checked;
+          const optionalToggleOn = !!el('sfOptionalToggle')?.checked;
+    const electroToggleOn = !!el('sfElectroToggle')?.checked;
+    const isSectionOn = (section) => !section.optional || (section.group === 'electro' ? electroToggleOn : optionalToggleOn);
       const items = [];
       getSectionsForMachine(machineId).forEach(section => {
-        if (section.optional && !optionalToggleOn) return;
+              if (!isSectionOn(section)) return;
         section.items.forEach((item, i) => {
           items.push({
             form_id: formId,
@@ -4072,9 +4074,9 @@ function trField(obj, field, lang) {
         if (insertItemsError) { showToast('Opslaan mislukt: ' + insertItemsError.message); return; }
       }
 
-      const optionalSectionKeys = new Set(getSectionsForMachine(machineId).filter(s => s.optional).map(s => s.key));
-      const photos = Array.from(el('serviceFormSections').querySelectorAll('[data-sf-photo-data]'))
-        .filter(img => optionalToggleOn || !optionalSectionKeys.has(img.dataset.sfPhotoSection));
+         const sectionsByKey = new Map(getSectionsForMachine(machineId).map(s => [s.key, s]));
+    const photos = Array.from(el('serviceFormSections').querySelectorAll('[data-sf-photo-data]'))
+      .filter(img => { const s = sectionsByKey.get(img.dataset.sfPhotoSection); return !s || isSectionOn(s); });
       let photoUploadFailed = false;
       for (const img of photos) {
         const base64 = img.dataset.sfPhotoData;
