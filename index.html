@@ -2137,7 +2137,7 @@
     }
 
     function renderMachines(customer) {
-      el('machinesTitleCount').textContent = `${customer.machines.length} machines`;
+      el('machinesTitleCount').textContent = `${customer.machines.length}`;
       el('machinesDialogCustomer').textContent = customer.name || '-';
 
       const container = el('machinesDialogList');
