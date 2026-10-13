@@ -1043,6 +1043,23 @@
       if (node) node.addEventListener(event, handler);
       return node;
     };
+    // Voorkomt dubbel opslaan: knop is geblokkeerd tot de actie klaar is
+    const lockButton = (id, handler, busyText = 'Opslaan...') => {
+      on(id, 'click', async () => {
+        const btn = el(id);
+        if (!btn || btn.disabled) return;
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.classList.add('opacity-60', 'cursor-wait');
+        btn.textContent = busyText;
+        try { await handler(); }
+        finally {
+          btn.disabled = false;
+          btn.classList.remove('opacity-60', 'cursor-wait');
+          btn.textContent = label;
+        }
+      });
+    };
 
     const monthNames = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
@@ -4114,6 +4131,7 @@ function trField(obj, field, lang) {
         }).select('id').single();
         if (formError) { showToast('Opslaan mislukt: ' + formError.message); return; }
         formId = formData.id;
+        state.serviceFormEditId = formId; // bij herkansing hetzelfde formulier bijwerken, geen nieuw formulier
       }
 
           const optionalToggleOn = !!el('sfOptionalToggle')?.checked;
@@ -4161,7 +4179,7 @@ function trField(obj, field, lang) {
             const { error } = await state.supabase.storage.from('service-photos').upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
             if (error) throw error;
             const { data: urlData } = state.supabase.storage.from('service-photos').getPublicUrl(filename);
-            uploadedPhotos.push({ form_id: formId, section: sectionKey, photo_url: urlData.publicUrl, localData: dataUrl });
+            uploadedPhotos.push({ form_id: formId, section: sectionKey, photo_url: urlData.publicUrl, localData: dataUrl, img });
             return;
           } catch (e) {
             if (attempt === 2) { failedCount++; console.error('Foto upload mislukt:', e); }
@@ -4186,6 +4204,7 @@ function trField(obj, field, lang) {
         const { error: photoRowsError } = await state.supabase.from('service_form_photos')
           .insert(uploadedPhotos.map(p => ({ form_id: p.form_id, section: p.section, photo_url: p.photo_url })));
         if (photoRowsError) { failedCount += uploadedPhotos.length; console.error('Foto-koppeling opslaan mislukt:', photoRowsError); }
+        else uploadedPhotos.forEach(p => { p.img.removeAttribute('data-sf-photo-data'); p.img.dataset.existingPhoto = '1'; });
       }
 
       const formForPdf = {
@@ -4487,7 +4506,7 @@ function isCanvasBlank(canvas) {
       on('werkbonAddPartBtn', 'click', () => addWerkbonPart());
       on('werkbonBrowsePartsBtn', 'click', async () => { try { await openWerkbonBrowsePartsDialog(); } catch(err) { console.error(err); showToast('Laden mislukt'); } });
       wireDialogClose('werkbonBrowsePartsDialog', 'closeWerkbonBrowsePartsBtn');
-      on('werkbonPrintBtn', 'click', async () => { try { await exportWerkbonPdf(); } catch(err) { console.error(err); showToast(err?.message || 'Export failed'); } });
+      lockButton('werkbonPrintBtn', async () => { try { await exportWerkbonPdf(); } catch(err) { console.error(err); showToast(err?.message || 'Export failed'); } });
       wireDialogClose('werkbonDialog', 'closeWerkbonBtn');
       on('cancelWerkbonBtn', 'click', () => safeClose('werkbonDialog'));
       on('openWerkbonHistoryBtn', 'click', async () => { try { await openWerkbonHistoryDialog(); } catch(err) { console.error(err); showToast('Laden mislukt'); } });
@@ -4590,7 +4609,7 @@ function isCanvasBlank(canvas) {
       on('cancelTipBtn', 'click', () => {
         el('tipAddForm').classList.add('hidden');
       });
-      on('saveTipBtn', 'click', async () => {
+      lockButton('saveTipBtn', async () => {
         const customerId = state.tipsCustomerId;
         if (!customerId) { showToast('Geen klant geselecteerd'); return; }
         const name = el('tipNameInput').value.trim();
@@ -4648,7 +4667,7 @@ function isCanvasBlank(canvas) {
       el('timeMinutesInput').value = String(totaal % 60);
       });
 
-      on('saveTimeBtn', 'click', async () => {
+     lockButton('saveTimeBtn', async () => {
         try { await saveTimeRegistration(); }
         catch (err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); }
       });
@@ -4745,7 +4764,7 @@ function isCanvasBlank(canvas) {
 
       on('addCustomerBtn', 'click', () => openCustomerDialog('create'));
       on('editCustomerBtn', 'click', () => openCustomerDialog('edit'));
-      on('saveCustomerBtn', 'click', async () => {
+      lockButton('saveCustomerBtn', async () => {
         try {
           await saveCustomer();
         } catch (err) {
@@ -4781,7 +4800,7 @@ function isCanvasBlank(canvas) {
         window.open(url, '_blank', 'noopener');
       });
 
-      on('saveMachineBtn', 'click', async () => {
+     lockButton('saveMachineBtn', async () => {
         try {
           await saveMachine();
         } catch (err) {
@@ -4855,7 +4874,7 @@ function isCanvasBlank(canvas) {
 
       wireDialogClose('brakeTestDialog', 'closeBrakeTestBtn');
       on('cancelBrakeTestBtn', 'click', () => safeClose('brakeTestDialog'));
-      on('saveBrakeTestBtn', 'click', async () => { try { await saveBrakeTest(); } catch(err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); } });
+      lockButton('saveBrakeTestBtn', async () => { try { await saveBrakeTest(); } catch(err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); } });
       on('btClearSignature', 'click', () => {
         const canvas = el('btSignatureCanvas');
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
@@ -4870,7 +4889,7 @@ function isCanvasBlank(canvas) {
       wireDialogClose('machineTypeFormDialog', 'closeMachineTypeFormBtn');
       on('mtCancelBtn', 'click', () => { safeClose('machineTypeFormDialog'); openMachineTypesDialog(); });
       on('mtAddSectionBtn', 'click', () => addMtSectionBlock());
-      on('mtSaveBtn', 'click', async () => { try { await saveMachineType(); } catch(err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); } });
+      lockButton('mtSaveBtn', async () => { try { await saveMachineType(); } catch(err) { console.error(err); showToast(err?.message || 'Opslaan mislukt'); } });
 
       wireDialogClose('customerDialog', 'closeCustomerBtn');
       on('cancelCustomerBtn', 'click', closeCustomerDialog);
