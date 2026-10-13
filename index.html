@@ -1734,8 +1734,8 @@
             try {
              const savedId = state.selectedCustomerId;
              await deleteMachineAndHistory(machineId);
-             await loadData();
              closeManageMachinesDialog();
+             await loadData();
              if (savedId) selectCustomer(savedId);
               showToast('Machine verwijderd');
             } catch (error) {
