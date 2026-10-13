@@ -3670,10 +3670,10 @@ function trField(obj, field, lang) {
         const rowsHtml = (list) => list.map(r => `<tr><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.part || ''}</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.note || ''}</td></tr>`).join('');
         let extra = '';
         if (general.length) {
-          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.generalMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table>`;
+          extra += `<div class="pdf-avoid"><div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.generalMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table></div>`;
         }
         if (recommend.length) {
-          extra += `<div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.nextMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table>`;
+          extra += `<div class="pdf-avoid"><div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.nextMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table></div>`;
         }
         return extra;
       })()}
