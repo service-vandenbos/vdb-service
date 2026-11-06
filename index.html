@@ -2717,7 +2717,7 @@
     machines.forEach((regs, machineName) => {
       regs.forEach(r => {
         customerTotal += (r.duration_minutes || 0);
-        rows += `<tr><td class="machine">${machineName}</td><td class="duration">${fmtDur(r.duration_minutes)}</td><td class="date">${fmtDate(r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
+        rows += `<tr><td class="machine">${machineName}</td><td class="duration">${fmtDur(r.duration_minutes)}</td><td class="date">${fmtDate(r.registration_date ? r.registration_date + 'T12:00:00' : r.created_at)}</td><td class="engineer">${r.engineer_name || '—'}${r.note ? ` · ${r.note}` : ''}</td></tr>`;
       });
     });
     grandTotal += customerTotal;
