@@ -567,6 +567,10 @@
       </div>
       <div class="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
         <div class="text-xs uppercase tracking-[0.34em] text-slate-400 mb-3">Handmatig invullen</div>
+          <div class="mb-3">
+          <label class="mb-1 block text-sm text-slate-300">Datum</label>
+          <input id="timeManualDate" type="date" class="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-slate-100 outline-none focus:border-brand-400" style="color-scheme:dark" />
+          </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-sm text-slate-300">Uren</label>
@@ -2426,6 +2430,7 @@
       el('timeNoteInput').value = '';
       el('timeHoursInput').value = '';
       el('timeMinutesInput').value = '0';
+      el('timeManualDate').value = new Date().toLocaleDateString('sv-SE');
       el('timerDisplay').textContent = '00:00:00';
       el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
@@ -2457,6 +2462,7 @@
       const totalMinutes = Math.round((reg.duration_minutes || 0) / 15) * 15;
       el('timeHoursInput').value = Math.floor(totalMinutes / 60);
       el('timeMinutesInput').value = String(totalMinutes % 60);
+      el('timeManualDate').value = reg.registration_date || (reg.created_at ? new Date(reg.created_at).toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE'));
       el('timerDisplay').textContent = '00:00:00';
       el('timerStartBtn').textContent = 'Inchecken';
       el('timerStartBtn').classList.remove('hidden');
@@ -2503,8 +2509,9 @@
       openModal('machinesDialog');
     }
 
-    async function downloadMonteurRegistrationPdf(data) {
-      const dateFormatted = new Date().toLocaleDateString('nl-NL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+      async function downloadMonteurRegistrationPdf(data) {
+      const pdfDateRaw = data.registrationDate || data.registration_date;
+      const dateFormatted = (pdfDateRaw ? new Date(pdfDateRaw + 'T12:00:00') : new Date()).toLocaleDateString('nl-NL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
       const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:24px;background:#fff;}.pdfroot .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}.pdfroot .logo{font-size:18px;font-weight:bold;}.pdfroot .logo .green{color:#1a7a3c;}.pdfroot .logo .blue{color:#1978f5;}.pdfroot .logo-sub{font-size:11px;color:#555;}.pdfroot .title{font-size:16px;font-weight:bold;text-decoration:underline;}.pdfroot .address-block{font-size:10px;color:#333;margin-top:8px;}.pdfroot .meta{margin:12px 0;}.pdfroot .meta p{margin:2px 0;}.pdfroot h3{font-size:12px;font-weight:bold;text-decoration:underline;margin:14px 0 6px;}.pdfroot table{width:100%;border-collapse:collapse;margin-bottom:12px;}.pdfroot th{background:#e8e8e8;border:1px solid #ccc;padding:4px 6px;text-align:left;font-size:10px;}.pdfroot td{border:1px solid #ccc;padding:4px 6px;font-size:10px;}.pdfroot .footer{margin-top:20px;font-size:9px;color:#555;font-style:italic;}`;
       const innerHtml = `
       <div class="header"><div><div class="logo">VAN DEN <span class="green">BOS</span></div><div class="logo-sub">robotics</div><div class="logo" style="margin-top:4px">VAN DEN <span class="blue">BOS</span></div><div class="logo-sub">corrugated machinery</div><div class="address-block" style="margin-top:8px">Van den Bos corrugated machinery<br>Bedrijvenpark Twente Noord 89, 7602 KS Almelo<br>Almelo, Overijssel, 7602 KS<br>+31 546 473 441 ; service@vandenbos-cm.nl</div></div><div style="text-align:right"><div class="title">Monteur inzet - noodgeval</div><div style="margin-top:12px;font-size:10px"><strong>${data.customerName || '—'}</strong><br>${data.machineName || '—'}</div></div></div>
@@ -2528,6 +2535,7 @@
       const minutes = parseInt(el('timeMinutesInput').value || '0');
       const totalMinutes = hours * 60 + minutes;
       if (totalMinutes <= 0) throw new Error('Vul een geldige tijd in');
+      const registrationDate = el('timeManualDate').value || new Date().toLocaleDateString('sv-SE');
 
       const monteurExpanded = !el('monteurFieldsWrap').classList.contains('hidden');
       const monteurHoursRaw = el('monteurHoursInput').value;
@@ -2548,7 +2556,8 @@
         monteur_hours: monteurHours,
         monteur_travel_hours: monteurTravelHours,
         monteur_km: monteurKm,
-        monteur_overnight_count: monteurOvernight
+      monteur_overnight_count: monteurOvernight,
+      registration_date: registrationDate
       };
       if (state.editingTimeRegistrationId) {
         const { error } = await state.supabase.from('time_registrations').update(payload).eq('id', state.editingTimeRegistrationId);
@@ -2668,7 +2677,8 @@
               monteurTravelHours: reg.monteur_travel_hours,
               monteurKm: reg.monteur_km,
               monteurOvernightCount: reg.monteur_overnight_count,
-              note: reg.note || ''
+              note: reg.note || '',
+              registrationDate: reg.registration_date || (reg.created_at ? reg.created_at.slice(0, 10) : '')
             });
           } catch (err) { console.error(err); showToast('PDF genereren mislukt'); }
         });
