@@ -2723,11 +2723,14 @@
     grandTotal += customerTotal;
     bodyHtml += `<div class="customer-block"><div class="customer-header"><span class="customer-name">${customerName}</span><span class="customer-total">${fmtDur(customerTotal)}</span></div><table><tbody>${rows}</tbody></table></div>`;
   });
-      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;background:#fff;}.pdfroot h1{font-size:16px;font-weight:bold;margin-bottom:6px;}.pdfroot .grand-total{text-align:right;font-size:12px;font-weight:bold;color:#1978f5;margin-bottom:20px;}.pdfroot .customer-block{margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.pdfroot .customer-header{display:flex;justify-content:space-between;background:#f4f4f4;padding:8px 12px;font-weight:bold;font-size:12px;}.pdfroot .customer-total{color:#1978f5;}.pdfroot table{width:100%;border-collapse:collapse;}.pdfroot td{padding:6px 12px;border-top:1px solid #eee;vertical-align:top;}.pdfroot td.machine{font-weight:bold;width:30%;}.pdfroot td.duration{width:12%;color:#333;}.pdfroot td.date{width:20%;color:#555;}.pdfroot td.engineer{color:#555;}`;
-        const singleCustomer = onlyCustomerId ? [...byCustomer.keys()][0] : null;
-  const innerHtml = `<h1>${L.title}</h1><div class="grand-total">${onlyCustomerId ? L.total : L.totalAll}: ${fmtDur(grandTotal)}</div>${bodyHtml}`;
-  const safeName = singleCustomer ? '_' + singleCustomer.replace(/[^a-z0-9]+/gi, '_') : '';
-  await renderHtmlToPdf({ innerHtml, cssText, filename: `${L.file}${safeName}.pdf` });
+    const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:32px;background:#fff;}.pdfroot h1{font-size:16px;font-weight:bold;margin-bottom:6px;}.pdfroot .grand-total{text-align:right;font-size:12px;font-weight:bold;color:#1978f5;margin-bottom:20px;}.pdfroot .customer-block{margin-bottom:20px;border:1px solid #ddd;border-radius:6px;overflow:hidden;}.pdfroot .customer-header{display:flex;justify-content:space-between;background:#f4f4f4;padding:8px 12px;font-weight:bold;font-size:12px;}.pdfroot .customer-total{color:#1978f5;}.pdfroot table{width:100%;border-collapse:collapse;}.pdfroot td{padding:6px 12px;border-top:1px solid #eee;vertical-align:top;}.pdfroot td.machine{font-weight:bold;width:30%;}.pdfroot td.duration{width:12%;color:#333;}.pdfroot td.date{width:20%;color:#555;}.pdfroot td.engineer{color:#555;}`;
+    const singleCustomer = onlyCustomerId ? [...byCustomer.keys()][0] : null;
+    const regDates = data.map(r => r.registration_date || (r.created_at || '').slice(0, 10)).filter(Boolean).sort();
+    const firstD = regDates[0], lastD = regDates[regDates.length - 1];
+    const periodLabel = !firstD ? '' : firstD === lastD ? fmtDate(firstD + 'T12:00:00') : `${fmtDate(firstD + 'T12:00:00')} – ${fmtDate(lastD + 'T12:00:00')}`;
+    const innerHtml = `<h1>${L.title}</h1><div style="margin-bottom:8px;color:#555;font-size:12px;">${periodLabel}</div><div class="grand-total">${onlyCustomerId ? L.total : L.totalAll}: ${fmtDur(grandTotal)}</div>${bodyHtml}`;
+    const safeName = singleCustomer ? '_' + singleCustomer.replace(/[^a-z0-9]+/gi, '_') : '';
+    await renderHtmlToPdf({ innerHtml, cssText, filename: `${L.file}${safeName}.pdf` });
     }
 
     async function openWerkbonHistoryDialog() {
