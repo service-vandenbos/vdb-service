@@ -2303,7 +2303,10 @@
           .bindPopup(`<div style="min-width:180px"><strong>${customer.name || 'Klant'}</strong><br>${customer.city || ''}<br>${customer.machineCount} machines</div>`)
           .bindTooltip(customer.name || 'Klant', { direction: 'top', offset: [0, -8] });
 
-        marker.on('click', () => selectCustomer(customer.id));
+        marker.on('click', () => {
+          selectCustomer(customer.id);
+          if (customer.derivedStatus === 'orange') openMaintenancePanel(customer.id);
+        });
         state.markerIndex.set(customer.id, marker);
         bounds.push([Number(customer.latitude), Number(customer.longitude)]);
       });
