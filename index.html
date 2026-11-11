@@ -5386,6 +5386,18 @@ function isCanvasBlank(canvas) {
       wireDialogClose('historyDialog', 'closeHistoryBtn');
       wireDialogClose('machinesDialog', 'closeMachinesBtn');
       on('closeMaintenancePanelBtn', 'click', () => closeMaintenancePanel());
+      // Terug naar het overzicht (Totaal klanten / Machines / Service OK):
+      // pop-up sluiten en klantdetail terug naar beginstand, net als na Verversen
+      document.querySelectorAll('.kpi-filter').forEach((card) => {
+        card.addEventListener('click', () => {
+          const filter = card.dataset.kpiFilter || 'all';
+          if (filter !== 'all' && filter !== 'green') return;
+          closeMaintenancePanel();
+          state.selectedCustomerId = null;
+          renderCustomerList();
+          renderDetail();
+        });
+      });
 
       on('openMaintenancePlanBtn', 'click', async () => {
         try { await openMaintenancePlanDialog(); }
