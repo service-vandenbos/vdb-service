@@ -230,6 +230,7 @@
           <button id="logoutBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Uitloggen</button>
           <button id="openTimeReportBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Software Uren 2026</button>
           <button id="openMachineTypesBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Machinetypes beheren</button>
+          <button id="openMaintenancePlanBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/10">Onderhoudsplan</button>
           <button id="addCustomerBtn" class="rounded-2xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-400">Klant toevoegen</button>
         </div>
       </div>
@@ -693,6 +694,25 @@
       <div class="flex flex-wrap gap-3 pt-2">
         <button id="mtSaveBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold hover:bg-brand-400">Opslaan</button>
         <button id="mtCancelBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="maintenancePlanDialog" data-lock class="w-full max-w-5xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold">Onderhoudsplan</h3>
+          <div class="mt-1 text-sm text-slate-400">Vink per artikel aan in welk jaar het onderhoud aangeboden wordt. Jaren tellen vanaf de installatiedatum.</div>
+        </div>
+        <button id="closeMaintenancePlanBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
+      </div>
+    </div>
+    <div class="scrollbar-thin max-h-[75vh] overflow-auto px-6 py-5 space-y-4">
+      <div id="maintenancePlanEditor"></div>
+      <div class="flex flex-wrap gap-3 border-t border-white/10 pt-4">
+        <button id="saveMaintenancePlanBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Opslaan</button>
+        <button id="cancelMaintenancePlanBtn" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-semibold hover:bg-white/10">Annuleren</button>
       </div>
     </div>
   </dialog>
@@ -1316,7 +1336,7 @@
     function applyRoleVisibility() {
       const isField = getCurrentRole() === 'field';
 
-      const headerBtnIds = ['openTimeReportBtn', 'openMachineTypesBtn', 'addCustomerBtn'];
+      const headerBtnIds = ['openTimeReportBtn', 'openMachineTypesBtn', 'openMaintenancePlanBtn', 'addCustomerBtn'];
       headerBtnIds.forEach(id => el(id)?.classList.toggle('hidden', isField));
 
       const kpiSection = document.querySelector('section.mt-6.grid.gap-5.lg\\:grid-cols-5');
@@ -2505,6 +2525,199 @@
         return;
       }
       body.innerHTML = machines.map(renderMaintenancePanelMachine).join('');
+    }
+
+    // ===== Beheerscherm Onderhoudsplan (alleen kantoor) =====
+    const MAINTENANCE_MAX_CYCLE = 10;
+    const MAINTENANCE_DEFAULT_CYCLE = { KUKA: 10, MULTIPACK: 4 };
+
+    async function openMaintenancePlanDialog() {
+      if (getCurrentRole() === 'field') return;
+      const ok = await loadMaintenancePlan();
+      if (!ok) return;
+      state.mpDraft = {};
+      MAINTENANCE_PARTS.forEach(part => {
+        const rows = state.maintenancePlan
+          .filter(r => r.onderdeel === part.key)
+          .sort((a, b) => (a.volgorde || 0) - (b.volgorde || 0));
+        state.mpDraft[part.key] = {
+          cyclus: Number(rows[0]?.cyclus) || MAINTENANCE_DEFAULT_CYCLE[part.key] || 10,
+          rows: rows.map(r => ({
+            id: r.id,
+            artikelcode: r.artikelcode || '',
+            omschrijving: r.omschrijving || '',
+            jaren: (Array.isArray(r.jaren) ? r.jaren : []).map(Number)
+          })),
+          deletedIds: []
+        };
+      });
+      if (!state.mpActivePart) state.mpActivePart = MAINTENANCE_PARTS[0].key;
+      state.mpDirty = false;
+      renderMaintenancePlanEditor();
+      openModal('maintenancePlanDialog');
+    }
+
+    function renderMaintenancePlanEditor() {
+      const container = el('maintenancePlanEditor');
+      if (!container || !state.mpDraft) return;
+      const active = state.mpActivePart;
+      const draft = state.mpDraft[active];
+      const years = Array.from({ length: draft.cyclus }, (_, i) => i + 1);
+
+      const tabs = MAINTENANCE_PARTS.map(part => `
+        <button type="button" data-mp-tab="${part.key}" class="rounded-xl px-4 py-2 text-sm font-semibold transition ${part.key === active ? 'bg-brand-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}">${part.label}</button>`).join('');
+
+      const rowsHtml = draft.rows.length
+        ? draft.rows.map((row, i) => `
+          <tr class="${i % 2 === 0 ? 'bg-white/[0.02]' : ''}">
+            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="artikelcode" value="${escMp(row.artikelcode)}" class="w-24 rounded-lg border border-white/10 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-brand-400" placeholder="Code" /></td>
+            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="omschrijving" value="${escMp(row.omschrijving)}" class="w-full min-w-[220px] rounded-lg border border-white/10 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-brand-400" placeholder="Omschrijving" /></td>
+            ${years.map(y => `<td class="px-1 py-2 text-center align-middle"><input type="checkbox" data-mp-row="${i}" data-mp-year="${y}" aria-label="Jaar ${y}" ${row.jaren.includes(y) ? 'checked' : ''} class="h-4 w-4 accent-brand-500" /></td>`).join('')}
+            <td class="py-2 pl-2 text-right align-middle"><button type="button" data-mp-delete="${i}" class="rounded-lg border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs text-red-100 hover:bg-red-500/25">Verwijderen</button></td>
+          </tr>`).join('')
+        : `<tr><td colspan="${years.length + 3}" class="py-4 text-sm text-slate-500">Nog geen regels. Voeg een regel toe.</td></tr>`;
+
+      container.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap gap-2">${tabs}</div>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            Cyclus (jaren)
+            <input id="mpCycleInput" type="number" min="1" max="${MAINTENANCE_MAX_CYCLE}" value="${draft.cyclus}" class="w-20 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" />
+          </label>
+        </div>
+        <div class="mt-2 text-xs text-slate-500">Na jaar ${draft.cyclus} begint het onderhoud weer bij jaar 1.</div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr>
+              <th class="py-1 pr-2 text-left text-xs font-normal text-slate-400">Artikelcode</th>
+              <th class="py-1 pr-2 text-left text-xs font-normal text-slate-400">Omschrijving</th>
+              ${years.map(y => `<th class="px-1 py-1 text-center text-xs font-normal text-slate-400">Jaar ${y}</th>`).join('')}
+              <th></th>
+            </tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <button type="button" data-mp-add class="mt-3 w-full rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-semibold text-brand-300 hover:bg-white/[0.05]">+ Regel toevoegen</button>`;
+    }
+
+    function bindMaintenancePlanEditor() {
+      const container = el('maintenancePlanEditor');
+      if (!container) return;
+
+      container.addEventListener('click', (e) => {
+        const tab = e.target.closest('[data-mp-tab]');
+        if (tab) { state.mpActivePart = tab.dataset.mpTab; renderMaintenancePlanEditor(); return; }
+
+        const del = e.target.closest('[data-mp-delete]');
+        if (del) {
+          const draft = state.mpDraft[state.mpActivePart];
+          const row = draft.rows[Number(del.dataset.mpDelete)];
+          if (!row) return;
+          if (!window.confirm(`Regel ${row.artikelcode || ''} ${row.omschrijving || ''} verwijderen?`)) return;
+          if (row.id) draft.deletedIds.push(row.id);
+          draft.rows.splice(Number(del.dataset.mpDelete), 1);
+          state.mpDirty = true;
+          renderMaintenancePlanEditor();
+          return;
+        }
+
+        if (e.target.closest('[data-mp-add]')) {
+          state.mpDraft[state.mpActivePart].rows.push({ id: null, artikelcode: '', omschrijving: '', jaren: [] });
+          state.mpDirty = true;
+          renderMaintenancePlanEditor();
+          const inputs = container.querySelectorAll('[data-mp-field="artikelcode"]');
+          inputs[inputs.length - 1]?.focus();
+        }
+      });
+
+      container.addEventListener('input', (e) => {
+        const field = e.target.dataset?.mpField;
+        if (!field) return;
+        const row = state.mpDraft[state.mpActivePart].rows[Number(e.target.dataset.mpRow)];
+        if (!row) return;
+        row[field] = e.target.value;
+        state.mpDirty = true;
+      });
+
+      container.addEventListener('change', (e) => {
+        if (e.target.id === 'mpCycleInput') {
+          const value = Math.min(MAINTENANCE_MAX_CYCLE, Math.max(1, parseInt(e.target.value, 10) || 1));
+          state.mpDraft[state.mpActivePart].cyclus = value;
+          state.mpDirty = true;
+          renderMaintenancePlanEditor();
+          return;
+        }
+        if (e.target.dataset?.mpYear) {
+          const row = state.mpDraft[state.mpActivePart].rows[Number(e.target.dataset.mpRow)];
+          if (!row) return;
+          const year = Number(e.target.dataset.mpYear);
+          row.jaren = e.target.checked
+            ? [...new Set([...row.jaren, year])].sort((a, b) => a - b)
+            : row.jaren.filter(j => j !== year);
+          state.mpDirty = true;
+        }
+      });
+    }
+
+    async function saveMaintenancePlan() {
+      // Eerst alles controleren, pas daarna opslaan
+      for (const part of MAINTENANCE_PARTS) {
+        const draft = state.mpDraft[part.key];
+        const badIndex = draft.rows.findIndex(r => !String(r.artikelcode).trim() || !String(r.omschrijving).trim());
+        if (badIndex >= 0) {
+          state.mpActivePart = part.key;
+          renderMaintenancePlanEditor();
+          showToast(`${part.label}: vul bij regel ${badIndex + 1} een artikelcode en omschrijving in`);
+          return;
+        }
+      }
+
+      try {
+        for (const part of MAINTENANCE_PARTS) {
+          const draft = state.mpDraft[part.key];
+          const cyclus = Math.min(MAINTENANCE_MAX_CYCLE, Math.max(1, Number(draft.cyclus) || 1));
+          for (let i = 0; i < draft.rows.length; i++) {
+            const row = draft.rows[i];
+            const payload = {
+              onderdeel: part.key,
+              artikelcode: String(row.artikelcode).trim(),
+              omschrijving: String(row.omschrijving).trim(),
+              jaren: [...new Set(row.jaren)].filter(j => j >= 1 && j <= cyclus).sort((a, b) => a - b),
+              volgorde: i + 1,
+              cyclus
+            };
+            if (row.id) {
+              const { error } = await state.supabase.from('maintenance_plan').update(payload).eq('id', row.id);
+              if (error) throw error;
+            } else {
+              const { data, error } = await state.supabase.from('maintenance_plan').insert(payload).select('id').single();
+              if (error) throw error;
+              row.id = data?.id || null; // bij een herkansing niet dubbel toevoegen
+            }
+          }
+          if (draft.deletedIds.length) {
+            const { error } = await state.supabase.from('maintenance_plan').delete().in('id', draft.deletedIds);
+            if (error) throw error;
+            draft.deletedIds = [];
+          }
+        }
+      } catch (err) {
+        console.error('Onderhoudsplan opslaan mislukt:', err);
+        showToast('Opslaan mislukt: ' + (err?.message || 'onbekende fout'));
+        return;
+      }
+
+      state.mpDirty = false;
+      await loadMaintenancePlan();
+      renderMaintenancePanel();
+      safeClose('maintenancePlanDialog');
+      showToast('Onderhoudsplan opgeslagen');
+    }
+
+    function requestCloseMaintenancePlanDialog() {
+      if (state.mpDirty && !window.confirm('Er zijn niet-opgeslagen wijzigingen. Toch sluiten?')) return;
+      state.mpDirty = false;
+      safeClose('maintenancePlanDialog');
     }
 
     async function bootstrap() {
@@ -5165,6 +5378,19 @@ function isCanvasBlank(canvas) {
       wireDialogClose('historyDialog', 'closeHistoryBtn');
       wireDialogClose('machinesDialog', 'closeMachinesBtn');
       on('closeMaintenancePanelBtn', 'click', () => closeMaintenancePanel());
+
+      on('openMaintenancePlanBtn', 'click', async () => {
+        try { await openMaintenancePlanDialog(); }
+        catch (err) { console.error(err); showToast('Onderhoudsplan laden mislukt'); }
+      });
+      bindMaintenancePlanEditor();
+      lockButton('saveMaintenancePlanBtn', async () => { await saveMaintenancePlan(); });
+      on('closeMaintenancePlanBtn', 'click', () => requestCloseMaintenancePlanDialog());
+      on('cancelMaintenancePlanBtn', 'click', () => requestCloseMaintenancePlanDialog());
+      el('maintenancePlanDialog')?.addEventListener('cancel', (e) => {
+        e.preventDefault();
+        requestCloseMaintenancePlanDialog();
+      });
     }
 
     bindEvents();
