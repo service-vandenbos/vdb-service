@@ -2175,14 +2175,15 @@
         container.innerHTML = cardHtml;
         container.querySelectorAll('[data-customer-id]').forEach((btn) => {
           btn.addEventListener('click', () => {
-            const fromStatusList = closeAfter && (state.customersDialogMode === 'orange_only' || state.customersDialogMode === 'red_only');
+            const picked = state.enrichedCustomers.find(c => c.id === btn.dataset.customerId);
+            const needsService = closeAfter && (picked?.derivedStatus === 'orange' || picked?.derivedStatus === 'red');
             if (closeAfter) {
               clearCustomerSearch();
               configureCustomersDialog('all');
               safeClose('customersDialog');
             }
             selectCustomer(btn.dataset.customerId);
-            if (fromStatusList) openMaintenancePanel(btn.dataset.customerId);
+            if (needsService) openMaintenancePanel(btn.dataset.customerId);
           });
         });
       };
