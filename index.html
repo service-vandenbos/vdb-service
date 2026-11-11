@@ -1726,11 +1726,23 @@
       const ok = window.confirm(`Weet je zeker dat je ${label} wilt verwijderen? Dit verwijdert ook de gekoppelde servicehistorie.`);
       if (!ok) return;
 
+      const savedId = state.selectedCustomerId; // loadData() maakt selectedCustomerId leeg
       await deleteMachineAndHistory(state.editingMachineId);
       closeMachineDialog();
       await loadData();
-      if (state.selectedCustomerId) selectCustomer(state.selectedCustomerId);
+      if (savedId) {
+        selectCustomer(savedId);
+        reopenMachinesOverview(savedId);
+      }
       showToast('Machine verwijderd');
+    }
+
+    // Na verwijderen terug naar het Machines-overzicht van dezelfde klant
+    function reopenMachinesOverview(customerId) {
+      const customer = state.enrichedCustomers.find(c => c.id === customerId);
+      if (!customer) return;
+      renderMachines(customer);
+      openModal('machinesDialog');
     }
 
     function closeManageMachinesDialog() {
@@ -1774,7 +1786,10 @@
              await deleteMachineAndHistory(machineId);
              closeManageMachinesDialog();
              await loadData();
-             if (savedId) selectCustomer(savedId);
+             if (savedId) {
+               selectCustomer(savedId);
+               reopenMachinesOverview(savedId);
+             }
               showToast('Machine verwijderd');
             } catch (error) {
               console.error(error);
