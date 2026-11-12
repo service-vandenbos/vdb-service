@@ -2408,14 +2408,33 @@
       renderMaintenancePanel();
     }
 
-    // ===== Onderhoud aanbieden (onderhoudsplan per MultiPack-machine) =====
-    // Jaartelling altijd vanaf de installatiedatum; elk onderdeel heeft een eigen cyclus
+    // ===== Onderhoud aanbieden (onderhoudsplan per machine) =====
+    // MultiPack: jaartelling vanaf de installatiedatum; KUKA en MultiPack hebben elk een eigen cyclus
     // (KUKA 10 jaar, cMultiPack 4 jaar), ingesteld in tabel maintenance_plan.
+    // Overige machinetypes (Wikkelaar, Pallet Dispenser, ...): één vaste lijst, elk jaar hetzelfde.
+    // Die regels staan in maintenance_plan met onderdeel = naam van het machinetype, cyclus 1, jaren [1].
     const MAINTENANCE_MACHINE_TYPE = 'MultiPack';
     const MAINTENANCE_PARTS = [
       { key: 'KUKA', label: 'KUKA' },
       { key: 'MULTIPACK', label: 'MultiPack' }
     ];
+
+    // Alle tabbladen van het onderhoudsplan: KUKA + MultiPack, plus elk ander machinetype
+    function getMaintenanceParts() {
+      const reserved = new Set(MAINTENANCE_PARTS.map(p => p.key));
+      const seen = new Set();
+      const extra = (state.machineTypes || [])
+        .map(t => t && t.name)
+        .filter(name => {
+          if (!name || name === MAINTENANCE_MACHINE_TYPE) return false;
+          if (reserved.has(String(name).toUpperCase())) return false;
+          if (seen.has(name)) return false;
+          seen.add(name);
+          return true;
+        })
+        .map(name => ({ key: name, label: name, yearly: true }));
+      return [...MAINTENANCE_PARTS, ...extra];
+    }
 
     function escMp(value) {
       return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -2448,6 +2467,13 @@
       return ((machineYear - 1) % c) + 1;
     }
 
+    // Heeft deze machine een onderhoudsplan? MultiPack altijd, andere types alleen als er regels voor zijn.
+    function machineHasMaintenancePlan(machine) {
+      if (!machine) return false;
+      if (machine.type === MAINTENANCE_MACHINE_TYPE) return true;
+      return state.maintenancePlan.some(r => r.onderdeel === machine.type);
+    }
+
     async function loadMaintenancePlan() {
       const { data, error } = await state.supabase.from('maintenance_plan').select('*').order('volgorde');
       if (error) {
@@ -2474,7 +2500,24 @@
       renderMaintenancePanel();
     }
 
+    // Overige machinetypes: elk jaar dezelfde artikelen, installatiedatum niet nodig
+    function renderMaintenancePanelYearlyMachine(machine) {
+      const rows = state.maintenancePlan.filter(r => r.onderdeel === machine.type);
+      const list = rows.length
+        ? rows.map(r => `<div class="flex gap-3 text-sm"><span class="w-14 shrink-0 text-slate-400">${escMp(r.artikelcode)}</span><span class="text-slate-200">${escMp(r.omschrijving)}</span></div>`).join('')
+        : '<div class="text-sm text-slate-500">Geen artikelen ingesteld.</div>';
+      return `<div class="space-y-3 rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-lg font-semibold text-slate-100">${escMp(machine.machine_name || 'Onbekende machine')}</div>
+          <span class="rounded-full border border-brand-400/30 bg-brand-500/15 px-3 py-1 text-xs font-medium text-brand-100">${escMp(machine.type)} · elk jaar</span>
+        </div>
+        <div class="border-t border-white/8 pt-3"><div class="space-y-1">${list}</div></div>
+      </div>`;
+    }
+
     function renderMaintenancePanelMachine(machine) {
+      if (machine.type !== MAINTENANCE_MACHINE_TYPE) return renderMaintenancePanelYearlyMachine(machine);
+
       const machineYear = getMachineYear(machine.install_date);
       const header = `
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -2537,15 +2580,15 @@
       el('maintenancePanelLabel')?.classList.toggle('text-status-red', isRed);
       el('maintenancePanelLabel')?.classList.toggle('text-status-orange', !isRed);
 
-      const machines = (customer.machines || []).filter(m => m.type === MAINTENANCE_MACHINE_TYPE);
-      if (!machines.length) {
-        body.innerHTML = `<div class="text-sm text-slate-400">Geen ${MAINTENANCE_MACHINE_TYPE}-machines bij deze klant.</div>`;
-        return;
-      }
       if (!state.maintenancePlan.length) {
         body.innerHTML = state.maintenancePlanError
           ? '<div class="text-sm text-red-200">Onderhoudsplan kon niet geladen worden. Probeer Verversen.</div>'
           : '<div class="text-sm text-slate-400">Onderhoudsplan laden...</div>';
+        return;
+      }
+      const machines = (customer.machines || []).filter(machineHasMaintenancePlan);
+      if (!machines.length) {
+        body.innerHTML = '<div class="text-sm text-slate-400">Geen machines met een onderhoudsplan bij deze klant.</div>';
         return;
       }
       body.innerHTML = machines.map(renderMaintenancePanelMachine).join('');
@@ -2559,13 +2602,14 @@
       if (getCurrentRole() === 'field') return;
       const ok = await loadMaintenancePlan();
       if (!ok) return;
+      state.mpParts = getMaintenanceParts();
       state.mpDraft = {};
-      MAINTENANCE_PARTS.forEach(part => {
+      state.mpParts.forEach(part => {
         const rows = state.maintenancePlan
           .filter(r => r.onderdeel === part.key)
           .sort((a, b) => (a.volgorde || 0) - (b.volgorde || 0));
         state.mpDraft[part.key] = {
-          cyclus: Number(rows[0]?.cyclus) || MAINTENANCE_DEFAULT_CYCLE[part.key] || 10,
+          cyclus: part.yearly ? 1 : (Number(rows[0]?.cyclus) || MAINTENANCE_DEFAULT_CYCLE[part.key] || 10),
           rows: rows.map(r => ({
             id: r.id,
             artikelcode: r.artikelcode || '',
@@ -2575,7 +2619,7 @@
           deletedIds: []
         };
       });
-      if (!state.mpActivePart) state.mpActivePart = MAINTENANCE_PARTS[0].key;
+      if (!state.mpParts.some(p => p.key === state.mpActivePart)) state.mpActivePart = state.mpParts[0].key;
       state.mpDirty = false;
       renderMaintenancePlanEditor();
       openModal('maintenancePlanDialog');
@@ -2585,11 +2629,13 @@
       const container = el('maintenancePlanEditor');
       if (!container || !state.mpDraft) return;
       const active = state.mpActivePart;
-      const draft = state.mpDraft[active];
-      const years = Array.from({ length: draft.cyclus }, (_, i) => i + 1);
+      const activePart = state.mpParts.find(p => p.key === active) || state.mpParts[0];
+      const draft = state.mpDraft[activePart.key];
+      const yearly = !!activePart.yearly;
+      const years = yearly ? [] : Array.from({ length: draft.cyclus }, (_, i) => i + 1);
 
-      const tabs = MAINTENANCE_PARTS.map(part => `
-        <button type="button" data-mp-tab="${part.key}" class="rounded-xl px-4 py-2 text-sm font-semibold transition ${part.key === active ? 'bg-brand-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}">${part.label}</button>`).join('');
+      const tabs = state.mpParts.map(part => `
+        <button type="button" data-mp-tab="${escMp(part.key)}" class="rounded-xl px-4 py-2 text-sm font-semibold transition ${part.key === activePart.key ? 'bg-brand-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}">${escMp(part.label)}</button>`).join('');
 
       const rowsHtml = draft.rows.length
         ? draft.rows.map((row, i) => `
@@ -2601,15 +2647,22 @@
           </tr>`).join('')
         : `<tr><td colspan="${years.length + 3}" class="py-4 text-sm text-slate-500">Nog geen regels. Voeg een regel toe.</td></tr>`;
 
+      const cycleHtml = yearly
+        ? ''
+        : `<label class="flex items-center gap-2 text-sm text-slate-300">
+            Cyclus (jaren)
+            <input id="mpCycleInput" type="number" min="1" max="${MAINTENANCE_MAX_CYCLE}" value="${draft.cyclus}" class="w-20 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" />
+          </label>`;
+      const hintText = yearly
+        ? `Deze artikelen worden elk jaar aangeboden bij elke machine van type ${escMp(activePart.label)}.`
+        : `Na jaar ${draft.cyclus} begint het onderhoud weer bij jaar 1.`;
+
       container.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap gap-2">${tabs}</div>
-          <label class="flex items-center gap-2 text-sm text-slate-300">
-            Cyclus (jaren)
-            <input id="mpCycleInput" type="number" min="1" max="${MAINTENANCE_MAX_CYCLE}" value="${draft.cyclus}" class="w-20 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" />
-          </label>
+          ${cycleHtml}
         </div>
-        <div class="mt-2 text-xs text-slate-500">Na jaar ${draft.cyclus} begint het onderhoud weer bij jaar 1.</div>
+        <div class="mt-2 text-xs text-slate-500">${hintText}</div>
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-sm">
             <thead><tr>
@@ -2685,7 +2738,7 @@
 
     async function saveMaintenancePlan() {
       // Eerst alles controleren, pas daarna opslaan
-      for (const part of MAINTENANCE_PARTS) {
+      for (const part of state.mpParts) {
         const draft = state.mpDraft[part.key];
         const badIndex = draft.rows.findIndex(r => !String(r.artikelcode).trim() || !String(r.omschrijving).trim());
         if (badIndex >= 0) {
@@ -2697,16 +2750,16 @@
       }
 
       try {
-        for (const part of MAINTENANCE_PARTS) {
+        for (const part of state.mpParts) {
           const draft = state.mpDraft[part.key];
-          const cyclus = Math.min(MAINTENANCE_MAX_CYCLE, Math.max(1, Number(draft.cyclus) || 1));
+          const cyclus = part.yearly ? 1 : Math.min(MAINTENANCE_MAX_CYCLE, Math.max(1, Number(draft.cyclus) || 1));
           for (let i = 0; i < draft.rows.length; i++) {
             const row = draft.rows[i];
             const payload = {
               onderdeel: part.key,
               artikelcode: String(row.artikelcode).trim(),
               omschrijving: String(row.omschrijving).trim(),
-              jaren: [...new Set(row.jaren)].filter(j => j >= 1 && j <= cyclus).sort((a, b) => a - b),
+              jaren: part.yearly ? [1] : [...new Set(row.jaren)].filter(j => j >= 1 && j <= cyclus).sort((a, b) => a - b),
               volgorde: i + 1,
               cyclus
             };
