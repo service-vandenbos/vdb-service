@@ -698,17 +698,17 @@
     </div>
   </dialog>
 
-  <dialog id="maintenancePlanDialog" data-lock class="w-full max-w-5xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+  <dialog id="maintenancePlanDialog" data-lock class="w-[94vw] max-w-[1500px] rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
     <div class="border-b border-white/10 px-6 py-4">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold">Onderhoudsplan</h3>
-          <div class="mt-1 text-sm text-slate-400">Kies links een machine en beheer rechts de onderhoudsartikelen.</div>
+          <h3 class="text-2xl font-semibold">Onderhoudsplan</h3>
+          <div class="mt-1 text-base text-white">Kies links een machine en beheer rechts de onderhoudsartikelen.</div>
         </div>
         <button id="closeMaintenancePlanBtn" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">Sluiten</button>
       </div>
     </div>
-    <div class="scrollbar-thin max-h-[75vh] overflow-auto px-6 py-5 space-y-4">
+    <div class="scrollbar-thin max-h-[82vh] overflow-auto px-6 py-5 space-y-4">
       <div id="maintenancePlanEditor"></div>
       <div class="flex flex-wrap gap-3 border-t border-white/10 pt-4">
         <button id="saveMaintenancePlanBtn" class="rounded-2xl bg-brand-500 px-4 py-3 font-semibold text-white hover:bg-brand-400">Opslaan</button>
@@ -2659,9 +2659,9 @@
           ? `${count} artikel${count === 1 ? '' : 'en'} · elk jaar`
           : `${count} artikel${count === 1 ? '' : 'en'} · cyclus ${d.cyclus} jaar`;
         const isActive = part.key === activePart.key;
-        return `<button type="button" data-mp-tab="${escMp(part.key)}" class="block w-full rounded-xl px-3 py-2.5 text-left transition ${isActive ? 'bg-brand-500 text-white' : 'text-slate-200 hover:bg-white/5'}">
-          <div class="truncate text-sm font-semibold">${escMp(part.label)}</div>
-          <div class="text-xs ${isActive ? 'text-white/80' : 'text-slate-500'}">${sub}</div>
+        return `<button type="button" data-mp-tab="${escMp(part.key)}" class="block w-full rounded-xl px-3 py-2.5 text-left transition ${isActive ? 'bg-brand-500 text-white' : 'text-white hover:bg-white/5'}">
+          <div class="break-words text-base font-semibold">${escMp(part.label)}</div>
+          <div class="text-sm text-white">${sub}</div>
         </button>`;
       }).join('');
 
@@ -2674,65 +2674,65 @@
           </select>
           <div class="flex gap-2">
             <button type="button" data-mp-add-type class="flex-1 rounded-lg bg-brand-500 px-2 py-1.5 text-sm font-semibold text-white hover:bg-brand-400">Toevoegen</button>
-            <button type="button" data-mp-cancel-add class="rounded-lg bg-white/5 px-2 py-1.5 text-sm text-slate-300 hover:bg-white/10">Annuleren</button>
+            <button type="button" data-mp-cancel-add class="rounded-lg bg-white/5 px-2 py-1.5 text-sm text-white hover:bg-white/10">Annuleren</button>
           </div>
         </div>`;
       } else if (addable.length) {
-        addHtml = `<button type="button" data-mp-show-add class="w-full rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-sm font-semibold text-brand-300 hover:bg-white/[0.04]">+ Machine toevoegen</button>`;
+        addHtml = `<button type="button" data-mp-show-add class="w-full rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.04]">+ Machine toevoegen</button>`;
       } else {
-        addHtml = '<div class="px-1 text-xs text-slate-500">Alle machinetypes staan in het plan. Nieuw type? Maak het aan via Machinetypes beheren.</div>';
+        addHtml = '<div class="px-1 text-sm text-white">Alle machinetypes staan in het plan. Nieuw type? Maak het aan via Machinetypes beheren.</div>';
       }
 
       // ---- Rechts: artikelen van de gekozen machine ----
       const rowsHtml = draft.rows.length
         ? draft.rows.map((row, i) => `
           <tr class="border-b border-white/5">
-            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="artikelcode" value="${escMp(row.artikelcode)}" class="w-24 rounded-lg border border-white/10 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-brand-400" placeholder="Code" /></td>
-            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="omschrijving" value="${escMp(row.omschrijving)}" class="w-full min-w-[180px] rounded-lg border border-white/10 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-brand-400" placeholder="Omschrijving" /></td>
-            ${years.map(y => `<td class="px-1 py-2 text-center align-middle"><input type="checkbox" data-mp-row="${i}" data-mp-year="${y}" aria-label="Jaar ${y}" ${row.jaren.includes(y) ? 'checked' : ''} class="h-4 w-4 accent-brand-500" /></td>`).join('')}
-            <td class="py-2 pl-1 text-right align-middle"><button type="button" data-mp-delete="${i}" title="Artikel verwijderen" class="rounded-lg px-2 py-1 text-slate-500 hover:bg-red-500/15 hover:text-red-200">✕</button></td>
+            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="artikelcode" value="${escMp(row.artikelcode)}" class="w-28 rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-base text-white outline-none focus:border-brand-400" placeholder="Code" /></td>
+            <td class="py-2 pr-2 align-middle"><input type="text" data-mp-row="${i}" data-mp-field="omschrijving" value="${escMp(row.omschrijving)}" class="w-full min-w-[220px] rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-base text-white outline-none focus:border-brand-400" placeholder="Omschrijving" /></td>
+            ${years.map(y => `<td class="px-1 py-2 text-center align-middle"><input type="checkbox" data-mp-row="${i}" data-mp-year="${y}" aria-label="Jaar ${y}" ${row.jaren.includes(y) ? 'checked' : ''} class="h-5 w-5 accent-brand-500" /></td>`).join('')}
+            <td class="py-2 pl-1 text-right align-middle"><button type="button" data-mp-delete="${i}" title="Artikel verwijderen" class="rounded-lg px-2 py-1 text-white hover:bg-red-500/15 hover:text-red-200">✕</button></td>
           </tr>`).join('')
-        : `<tr><td colspan="${years.length + 3}" class="py-6 text-center text-sm text-slate-500">Nog geen artikelen.</td></tr>`;
+        : `<tr><td colspan="${years.length + 3}" class="py-6 text-center text-sm text-white">Nog geen artikelen.</td></tr>`;
 
       const subLine = yearly
         ? 'Elk jaar hetzelfde onderhoud'
         : `Jaren vanaf installatiedatum · na jaar ${draft.cyclus} weer jaar 1`;
       const cycleHtml = yearly
         ? ''
-        : `<label class="flex items-center gap-2 text-xs text-slate-400">Cyclus
+        : `<label class="flex items-center gap-2 text-sm text-white">Cyclus
             <input id="mpCycleInput" type="number" min="1" max="${MAINTENANCE_MAX_CYCLE}" value="${draft.cyclus}" class="w-16 rounded-lg border border-white/10 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-brand-400" /> jaar
           </label>`;
       const removeHtml = yearly
-        ? `<button type="button" data-mp-remove-type class="rounded-lg px-2 py-1.5 text-xs text-slate-400 hover:bg-red-500/15 hover:text-red-200">Verwijderen uit plan</button>`
+        ? `<button type="button" data-mp-remove-type class="rounded-lg px-2 py-1.5 text-sm text-white hover:bg-red-500/15 hover:text-red-200">Verwijderen uit plan</button>`
         : '';
 
       container.innerHTML = `
-        <div class="grid gap-4 md:grid-cols-[220px,1fr]">
+        <div class="grid gap-6 md:grid-cols-[260px,1fr]">
           <div class="space-y-1 md:border-r md:border-white/10 md:pr-4">
-            <div class="mb-2 px-1 text-xs uppercase tracking-[0.24em] text-slate-500">Machines</div>
+            <div class="mb-2 px-1 text-sm font-semibold uppercase tracking-[0.2em] text-white">Machines</div>
             ${machineItems}
             <div class="pt-2">${addHtml}</div>
           </div>
           <div class="min-w-0">
             <div class="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-3">
               <div class="min-w-0">
-                <div class="truncate text-xl font-semibold text-slate-100">${escMp(activePart.label)}</div>
-                <div class="mt-0.5 text-xs text-slate-500">${subLine}</div>
+                <div class="break-words text-2xl font-semibold text-white">${escMp(activePart.label)}</div>
+                <div class="mt-0.5 text-sm text-white">${subLine}</div>
               </div>
               <div class="flex items-center gap-3">${cycleHtml}${removeHtml}</div>
             </div>
             <div class="mt-2 overflow-x-auto">
               <table class="w-full text-sm">
                 <thead><tr>
-                  <th class="py-2 pr-2 text-left text-xs font-normal text-slate-400">Artikelcode</th>
-                  <th class="py-2 pr-2 text-left text-xs font-normal text-slate-400">Omschrijving</th>
-                  ${years.map(y => `<th class="px-1 py-2 text-center text-xs font-normal text-slate-400">Jr ${y}</th>`).join('')}
+                  <th class="py-2 pr-2 text-left text-sm font-semibold text-white">Artikelcode</th>
+                  <th class="py-2 pr-2 text-left text-sm font-semibold text-white">Omschrijving</th>
+                  ${years.map(y => `<th class="px-1 py-2 text-center text-sm font-semibold text-white">Jr ${y}</th>`).join('')}
                   <th></th>
                 </tr></thead>
                 <tbody>${rowsHtml}</tbody>
               </table>
             </div>
-            <button type="button" data-mp-add class="mt-3 rounded-xl px-3 py-2 text-sm font-semibold text-brand-300 hover:bg-white/[0.05]">+ Artikel toevoegen</button>
+            <button type="button" data-mp-add class="mt-3 rounded-xl px-3 py-2 text-sm font-semibold text-white hover:bg-white/[0.05]">+ Artikel toevoegen</button>
           </div>
         </div>`;
     }
