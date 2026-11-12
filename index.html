@@ -2410,11 +2410,11 @@
 
     // ===== Onderhoud aanbieden (onderhoudsplan per MultiPack-machine) =====
     // Jaartelling altijd vanaf de installatiedatum; elk onderdeel heeft een eigen cyclus
-    // (KUKA 10 jaar, centreer-/bufferbaan 4 jaar), ingesteld in tabel maintenance_plan.
+    // (KUKA 10 jaar, cMultiPack 4 jaar), ingesteld in tabel maintenance_plan.
     const MAINTENANCE_MACHINE_TYPE = 'MultiPack';
     const MAINTENANCE_PARTS = [
       { key: 'KUKA', label: 'KUKA' },
-      { key: 'MULTIPACK', label: 'Centreer- en bufferbaan' }
+      { key: 'MULTIPACK', label: 'MultiPack' }
     ];
 
     function escMp(value) {
