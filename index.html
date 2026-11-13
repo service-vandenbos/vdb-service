@@ -276,7 +276,13 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div id="maintenancePanelLabel" class="text-xs uppercase tracking-[0.38em] text-status-orange">Onderhoud aanbieden</div>
-              <div id="maintenancePanelCustomer" class="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-100">-</div>
+              <div class="mt-2 flex flex-wrap items-center gap-3">
+                <div id="maintenancePanelCustomer" class="truncate text-2xl font-semibold tracking-tight text-slate-100">-</div>
+                <label class="flex items-center gap-2 text-sm font-semibold text-white">
+                  KM naar klant
+                  <input id="maintenancePanelDistance" type="number" min="0" step="1" inputmode="numeric" class="w-20 rounded-lg border border-white/15 bg-slate-900 px-2 py-1 text-base text-white outline-none focus:border-brand-400" />
+                </label>
+              </div>
             </div>
             <button id="closeMaintenancePanelBtn" type="button" class="shrink-0 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
           </div>
@@ -2516,6 +2522,31 @@
       renderMaintenancePanel();
     }
 
+    // Afstand naar de klant (km), per klant opgeslagen in customers.distance_km
+    async function saveCustomerDistance() {
+      const customerId = state.maintenancePanelCustomerId;
+      const input = el('maintenancePanelDistance');
+      if (!customerId || !input) return;
+      const raw = String(input.value).trim().replace(',', '.');
+      const value = raw === '' ? null : Number(raw);
+      if (value !== null && (!Number.isFinite(value) || value < 0)) {
+        showToast('Vul een geldig aantal km in');
+        return;
+      }
+      const { error } = await state.supabase.from(state.config.customers).update({ distance_km: value }).eq('id', customerId);
+      if (error) {
+        console.error('KM opslaan mislukt:', error);
+        showToast('KM opslaan mislukt: ' + (error.message || 'onbekende fout'));
+        return;
+      }
+      // Lokaal bijwerken, zonder loadData (geselecteerde klant blijft staan)
+      [state.customers, state.enrichedCustomers].forEach(list => {
+        const c = (list || []).find(x => x.id === customerId);
+        if (c) c.distance_km = value;
+      });
+      showToast(value === null ? 'KM naar klant gewist' : `KM naar klant opgeslagen: ${value}`);
+    }
+
     // Overige machinetypes: elk jaar dezelfde artikelen, installatiedatum niet nodig
     function renderMaintenancePanelYearlyMachine(machine) {
       const rows = state.maintenancePlan.filter(r => r.onderdeel === machine.type);
@@ -2587,6 +2618,8 @@
 
       panel.classList.remove('hidden');
       el('maintenancePanelCustomer').textContent = customer.name || '-';
+      const distanceInput = el('maintenancePanelDistance');
+      if (distanceInput && document.activeElement !== distanceInput) distanceInput.value = customer.distance_km ?? '';
 
       // Rood, dikker randje bij "Service vereist", anders dun oranje
       const isRed = customer.derivedStatus === 'red';
@@ -5552,6 +5585,7 @@ function isCanvasBlank(canvas) {
       wireDialogClose('historyDialog', 'closeHistoryBtn');
       wireDialogClose('machinesDialog', 'closeMachinesBtn');
       on('closeMaintenancePanelBtn', 'click', () => closeMaintenancePanel());
+      on('maintenancePanelDistance', 'change', () => saveCustomerDistance());
       // Terug naar het overzicht (Totaal klanten / Machines / Service OK):
       // pop-up sluiten en klantdetail terug naar beginstand, net als na Verversen
       document.querySelectorAll('.kpi-filter').forEach((card) => {
