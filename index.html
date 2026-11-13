@@ -241,7 +241,7 @@
         <div class="text-sm text-slate-300">Totaal Klanten</div>
         <div id="kpiLocations" class="mt-4 text-6xl font-semibold tracking-tight">0</div>
       </button>
-      <button data-kpi-filter="all" class="kpi-filter glass rounded-[28px] p-5 text-left shadow-panel transition hover:bg-white/[0.06]">
+      <button id="kpiMachinesCard" data-kpi-filter="all" class="kpi-filter glass rounded-[28px] p-5 text-left shadow-panel transition hover:bg-white/[0.06]">
         <div class="text-sm text-slate-300">Machines in beheer</div>
         <div id="kpiMachines" class="mt-4 text-6xl font-semibold tracking-tight">0</div>
       </button>
@@ -657,6 +657,16 @@
     <div class="px-6 py-5">
       <div id="timeReportContent" class="scrollbar-thin max-h-[70vh] space-y-4 overflow-auto"></div>
     </div>
+  </dialog>
+
+   <dialog id="machineCountsDialog" class="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
+    <div class="border-b border-white/10 px-6 py-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-2xl font-semibold text-white">Machines in beheer</h3>
+        <button id="closeMachineCountsBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
+      </div>
+    </div>
+    <div id="machineCountsList" class="scrollbar-thin max-h-[70vh] overflow-auto px-6 py-4"></div>
   </dialog>
 
    <dialog id="machineTypesDialog" data-lock class="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/70">
@@ -2520,6 +2530,24 @@
     function closeMaintenancePanel() {
       state.maintenancePanelCustomerId = null;
       renderMaintenancePanel();
+    }
+
+    // Pop-up "Machines in beheer": aantal machines per machinetype
+    function openMachineCountsDialog() {
+      const list = el('machineCountsList');
+      if (!list) return;
+      const counts = new Map();
+      (state.machines || []).forEach(m => {
+        const type = String(m.type || '').trim() || 'Geen type';
+        counts.set(type, (counts.get(type) || 0) + 1);
+      });
+      const rows = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const safe = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      list.innerHTML = rows.length
+        ? rows.map(([type, n]) => `<div class="flex items-center justify-between gap-4 border-b border-white/8 py-3"><span class="text-lg text-white">${safe(type)}</span><span class="text-2xl font-semibold text-white">${n}</span></div>`).join('')
+          + `<div class="flex items-center justify-between gap-4 pt-4"><span class="text-lg font-semibold text-white">Totaal</span><span class="text-2xl font-semibold text-brand-300">${(state.machines || []).length}</span></div>`
+        : '<div class="py-4 text-base text-white">Geen machines gevonden.</div>';
+      openModal('machineCountsDialog');
     }
 
     // KM naar klant, per klant opgeslagen in customers.distance_km (invulvak in Klantdetail)
@@ -5563,6 +5591,8 @@ function isCanvasBlank(canvas) {
 
       on('openMachineTypesBtn', 'click', () => openMachineTypesDialog());
       wireDialogClose('machineTypesDialog', 'closeMachineTypesBtn');
+      wireDialogClose('machineCountsDialog', 'closeMachineCountsBtn');
+      on('kpiMachinesCard', 'click', () => openMachineCountsDialog());
       on('addMachineTypeBtn', 'click', () => openMachineTypeFormDialog());
       wireDialogClose('machineTypeFormDialog', 'closeMachineTypeFormBtn');
       on('mtCancelBtn', 'click', () => { safeClose('machineTypeFormDialog'); openMachineTypesDialog(); });
