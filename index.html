@@ -4316,34 +4316,37 @@ function trField(obj, field, lang) {
         const hintTr = trField(item, 'description', pdfLang);
         const found = sectionItems.find(i => i.item === itemName) || {};
         if (pdfLang !== 'nl' && (!itemNameTr || (hint && !hintTr) || found.comment)) pdfHasDutch = true;
-        const checked = (col) => found[col] ? '☑' : '☐';
-        return `<tr style="background:${section.items.indexOf(item) % 2 === 0 ? '#f9fdf9' : '#fff'}">
-          <td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;">
-            <div>${itemNameTr || itemName}</div>
-            ${hint ? `<div style="margin-top:2px;font-size:9px;color:#888;">${hintTr || hint}</div>` : ''}
+        const dot = (col) => found[col] ? '<span class="sf-dot on"><i></i></span>' : '<span class="sf-dot"></span>';
+        return `<tr class="pdf-avoid">
+          <td>
+            <div class="sf-item">${itemNameTr || itemName}</div>
+            ${hint ? `<div class="sf-hint">${hintTr || hint}</div>` : ''}
           </td>
-          <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('checked')}</td>
-          <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('adjusted')}</td>
-          <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('cleaned')}</td>
-          <td style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:13px;">${checked('replaced')}</td>
-          <td style="padding:4px 8px;border:1px solid #ddd;font-size:11px;color:#555;">${found.comment || ''}</td>
+          <td class="c">${dot('checked')}</td>
+          <td class="c">${dot('adjusted')}</td>
+          <td class="c">${dot('cleaned')}</td>
+          <td class="c">${dot('replaced')}</td>
+          <td class="note">${found.comment || ''}</td>
         </tr>`;
       }).join('');
+      const countCol = (col) => section.items.filter(item => (sectionItems.find(i => i.item === itemLabel(item)) || {})[col]).length;
+      const chips = [['checked', t.colCheck], ['adjusted', t.colAdjust], ['cleaned', t.colClean], ['replaced', t.colReplace]]
+        .map(([col, label]) => { const n = countCol(col); return n ? `<span class="sf-chip">${n} ${label}</span>` : ''; }).join('');
       const sectionPhotos = (photos || []).filter(p => p.section === section.key);
       const photosHtml = sectionPhotos.length ? `
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;page-break-inside:avoid;">
-                   ${sectionPhotos.map(p => `<div style="width:calc(33.33% - 6px);height:170px;border:1px solid #ccc;border-radius:4px;background:#f4f4f4 url('${p.photo_url}') center / contain no-repeat;"></div>`).join('')}
+        <div class="sf-photos pdf-avoid">
+          ${sectionPhotos.map(p => `<div class="sf-photo" style="background-image:url('${p.photo_url}');"></div>`).join('')}
         </div>` : '';
-        return `<div class="pdf-avoid" style="padding-top:18px;padding-bottom:2px;">
-        <div style="color:#2a7a3c;font-weight:600;font-size:13px;margin-bottom:6px;">${sectionTitleTr || section.title}</div>
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#e8f5e9;">
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:11px;width:40%;">${t.item}</th>
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colCheck}</th>
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colAdjust}</th>
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colClean}</th>
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:center;font-size:10px;">${t.colReplace}</th>
-            <th style="padding:4px 8px;border:1px solid #ddd;text-align:left;font-size:10px;">${t.colComments}</th>
+        return `<div class="sf-sec">
+        <div class="sf-sechead pdf-avoid"><div class="vb-h2">${sectionTitleTr || section.title}</div><div class="sf-chips">${chips}</div></div>
+        <table class="sf-table">
+          <thead><tr>
+            <th style="width:38%;">${t.item}</th>
+            <th class="c">${t.colCheck}</th>
+            <th class="c">${t.colAdjust}</th>
+            <th class="c">${t.colClean}</th>
+            <th class="c">${t.colReplace}</th>
+            <th>${t.colComments}</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -4351,49 +4354,39 @@ function trField(obj, field, lang) {
       </div>`;
     }).join('');
 
-    const freeTextNoticeHtml = (t.freeTextNotice && pdfHasDutch) ? `<p style="margin:8px 0 0;font-style:italic;color:#666;font-size:10px;">${t.freeTextNotice}</p>` : '';
+    const freeTextNoticeHtml = (t.freeTextNotice && pdfHasDutch) ? `<p class="vb-desc note" style="font-style:italic;">${t.freeTextNotice}</p>` : '';
 
-      const cssText = `.pdfroot, .pdfroot *{box-sizing:border-box;margin:0;padding:0;}.pdfroot{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;background:#fff;}`;
+      const SF_TITLE = { nl: 'Servicerapport', en: 'Service Report', de: 'Servicebericht' };
+      const sfLocale = { nl: 'nl-NL', en: 'en-GB', de: 'de-DE' }[pdfLang] || 'nl-NL';
+      const sfDate = form.form_date ? new Date(form.form_date).toLocaleDateString(sfLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+      const cssText = VDB_PDF_CSS + `.pdfroot .sf-head{border-bottom:2px solid #4d9a30;}.pdfroot .sf-cards{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}.pdfroot .sf-cards .vb-card{flex:1 1 30%;}.pdfroot .sf-sec{margin-top:6px;}.pdfroot .sf-sechead{display:flex;justify-content:space-between;align-items:flex-end;}.pdfroot .sf-chips{margin:20px 0 8px;}.pdfroot .sf-chip{display:inline-block;margin-left:5px;background:#edf6e9;color:#3b7a24;font-weight:bold;border-radius:10px;padding:2px 8px;font-size:9px;}.pdfroot .sf-table th.c,.pdfroot .sf-table td.c{text-align:center;width:11%;}.pdfroot .sf-table td{vertical-align:middle;}.pdfroot .sf-item{color:#1d2329;}.pdfroot .sf-hint{margin-top:2px;font-size:8.5px;color:#8a9096;}.pdfroot .sf-dot{display:inline-block;position:relative;width:14px;height:14px;border-radius:50%;border:1.5px solid #c9ced3;vertical-align:middle;}.pdfroot .sf-dot.on{background:#4d9a30;border-color:#4d9a30;}.pdfroot .sf-dot.on i{position:absolute;left:4px;top:1.5px;width:3.5px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg);}.pdfroot .sf-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}.pdfroot .sf-photo{width:calc(33.33% - 6px);height:170px;border:1px solid #e3e6ea;border-radius:6px;background-color:#f6f8fa;background-position:center;background-size:contain;background-repeat:no-repeat;}`;
       const innerHtml = `
-          <div style="padding-bottom:12px;border-bottom:2px solid #22b455;margin-bottom:20px;">
-      <div style="display:inline-grid;grid-template-columns:auto auto;column-gap:10px;row-gap:6px;line-height:1;">
-        <div style="font-size:26px;font-weight:900;color:#0b1220;">VAN DEN</div>
-        <div style="font-size:26px;font-weight:900;color:#22b455;">BOS</div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:0 14px 0 6px;"><span>r</span><span>o</span><span>b</span><span>o</span><span>t</span><span>i</span><span>c</span><span>s</span></div>
-        <div style="font-size:13px;font-weight:700;color:#0b1220;">${t.title}</div>
+      <div class="vb-head sf-head pdf-avoid"><img class="vb-logo" src="${VDB_PDF_LOGO}" alt="Van den Bos Robotics" /><div class="vb-doc"><div class="vb-type">${SF_TITLE[pdfLang] || SF_TITLE.nl}</div><div class="vb-nr">${t.date} <strong>${sfDate}</strong></div></div></div>
+      <div class="sf-cards pdf-avoid">
+        <div class="vb-card"><div class="vb-lbl">${t.customer}</div><div class="vb-name">${customer?.name || '—'}</div></div>
+        <div class="vb-card"><div class="vb-lbl">${t.date}</div><div class="vb-name">${sfDate}</div></div>
+        <div class="vb-card"><div class="vb-lbl">${t.serviceEngineer}</div><div class="vb-name">${form.engineer_name || '—'}</div></div>
+        <div class="vb-card"><div class="vb-lbl">${t.machineName}</div><div class="vb-name">${form.machine_name || 'MP'}</div></div>
+        <div class="vb-card"><div class="vb-lbl">${t.machineNameCustomer}</div><div class="vb-name">${form.machine_name_customer || '—'}</div></div>
       </div>
-    </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;border:1px solid #ddd;">
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.customer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${customer?.name || '—'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;width:160px;">${t.date}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.form_date || '—'}</td></tr>
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineName}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name || 'MP'}</td><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.machineNameCustomer}:</td><td style="padding:5px 8px;border:1px solid #ddd;">${form.machine_name_customer || '—'}</td></tr>
-        <tr><td style="padding:5px 8px;border:1px solid #ddd;font-weight:600;">${t.serviceEngineer}:</td><td style="padding:5px 8px;border:1px solid #ddd;" colspan="3">${form.engineer_name || '—'}</td></tr>
-      </table>
       ${freeTextNoticeHtml}
       ${sections}
       ${(() => {
         let general = []; try { general = JSON.parse(form.general_maintenance || '[]'); } catch(e) {}
         let recommend = []; try { recommend = JSON.parse(form.next_maintenance_recommendation || '[]'); } catch(e) {}
-        const rowsHtml = (list) => list.map(r => `<tr><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.part || ''}</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10px;">${r.note || ''}</td></tr>`).join('');
+        const rowsHtml = (list) => list.map(r => `<tr class="pdf-avoid"><td>${r.part || ''}</td><td class="note">${r.note || ''}</td></tr>`).join('');
         let extra = '';
         if (general.length) {
-          extra += `<div class="pdf-avoid"><div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.generalMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table></div>`;
+          extra += `<div class="pdf-avoid"><div class="vb-h2">${t.generalMaintenance}</div><table><thead><tr><th style="width:38%;">${t.machinePart}</th><th>${t.recommendation}</th></tr></thead><tbody>${rowsHtml(general)}</tbody></table></div>`;
         }
         if (recommend.length) {
-          extra += `<div class="pdf-avoid"><div style="color:#2a7a3c;font-weight:600;font-size:13px;margin:14px 0 6px;">${t.nextMaintenance}</div><table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e8f5e9;"><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.machinePart}</th><th style="padding:4px 8px;border:1px solid #ccc;text-align:left;font-size:10px;">${t.recommendation}</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table></div>`;
+          extra += `<div class="pdf-avoid"><div class="vb-h2">${t.nextMaintenance}</div><table><thead><tr><th style="width:38%;">${t.machinePart}</th><th>${t.recommendation}</th></tr></thead><tbody>${rowsHtml(recommend)}</tbody></table></div>`;
         }
         return extra;
       })()}
-      <div class="pdf-avoid" style="border-top:2px solid #22b455;margin-top:32px;;padding-top:12px;display:flex;justify-content:flex-end;">
-      <div style="display:inline-grid;grid-template-columns:auto auto;column-gap:8px;row-gap:5px;line-height:1;">
-        <div style="font-size:20px;font-weight:900;color:#0b1220;">VAN DEN</div>
-        <div style="font-size:20px;font-weight:900;color:#22b455;">BOS</div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#444;padding:0 11px 0 5px;"><span>r</span><span>o</span><span>b</span><span>o</span><span>t</span><span>i</span><span>c</span><span>s</span></div>
-        <div style="font-size:11px;font-weight:700;color:#0b1220;">${t.title}</div>
-      </div>
-    </div>
       `;
 
-      await renderHtmlToPdf({ innerHtml, cssText, filename: `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.pdf` });
+      await renderHtmlToPdf({ innerHtml, cssText, filename: `ServiceForm_${form.form_date || 'export'}_${form.engineer_name || ''}.pdf`, brand: true });
     }
 
     async function openMultipackFormForEdit(form, items, photos) {
