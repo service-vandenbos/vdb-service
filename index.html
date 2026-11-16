@@ -4007,7 +4007,7 @@ container.innerHTML = workOrders.map(wo => {
           <button type="button" class="text-slate-500 hover:text-red-300 px-1">✕</button>
         </div>
         <textarea class="mt-section-items w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-brand-400" rows="3" placeholder="Eén item per regel">${items}</textarea>
-        <label class="flex items-center gap-2 text-xs text-slate-400">
+          <label class="flex items-center gap-2 text-xs text-slate-400" style="display:none">
           <input type="checkbox" class="mt-section-optional h-4 w-4 accent-brand-500" ${optional ? 'checked' : ''} />
           Optioneel (los af te nemen onderhoud, aan/uit te zetten in het formulier)
         </label>`;
