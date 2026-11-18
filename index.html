@@ -63,6 +63,9 @@
       border-radius: 999px;
     }
     #map { min-height: 420px; }
+    /* Onderhoudsblok open: kaart kleiner, blok krijgt de ruimte */
+    div:has(> div > #map):has(> #maintenancePanel:not(.hidden)) #map { min-height: 200px; height: 200px; }
+    #maintenancePanel:not(.hidden) { min-height: 480px; }
     .leaflet-container {
       background: #d8dde6;
       border-radius: 28px;
@@ -2638,6 +2641,9 @@
       const customer = state.maintenancePanelCustomerId
         ? state.enrichedCustomers.find(c => c.id === state.maintenancePanelCustomerId)
         : null;
+
+      // Kaart verandert van hoogte als het blok open/dicht gaat
+      setTimeout(() => state.map?.invalidateSize(), 0);
 
       if (!customer || getCurrentRole() === 'field') {
         panel.classList.add('hidden');
