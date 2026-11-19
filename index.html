@@ -3826,6 +3826,31 @@ container.innerHTML = workOrders.map(wo => {
     // en het donkere thema erft lichtgrijze tekstkleuren door. De pdfReset hieronder
     // maakt dat ongedaan voor alles binnen .pdfroot, zodat de PDF-eigen CSS schoon
     // kan werken zonder interferentie van het dashboard.
+    // Posities van links (px) binnen de html2pdf-container, ná het verwerken van paginaovergangen
+    function collectPdfLinks(container) {
+      const base = container.getBoundingClientRect();
+      return Array.from(container.querySelectorAll('a[href^="http"]')).map(a => {
+        const r = a.getBoundingClientRect();
+        return { url: a.href, x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height, cw: base.width };
+      }).filter(l => l.w > 0 && l.h > 0 && l.cw > 0);
+    }
+
+    // Klikbare gebieden op de juiste pagina in de PDF zetten (margin = [boven, links, onder, rechts] in mm)
+    function addPdfLinks(pdf, links, margin) {
+      const [mt, ml, mb, mr] = margin;
+      const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+      const pages = pdf.internal.getNumberOfPages();
+      links.forEach(l => {
+        const k = (pw - ml - mr) / l.cw;          // mm per px
+        const pageH = (ph - mt - mb) / k;         // paginahoogte in px
+        const page = Math.floor((l.y + 2) / pageH);
+        const yIn = Math.max(0, l.y - page * pageH);
+        if (page + 1 > pages || yIn + l.h > pageH + 2) return;
+        pdf.setPage(page + 1);
+        pdf.link(ml + l.x * k, mt + yIn * k, l.w * k, l.h * k, { url: l.url });
+      });
+    }
+
     async function renderHtmlToPdf({ innerHtml, cssText, filename, brand = false }) {
       const pdfReset = '.pdfroot,.pdfroot *,.pdfroot *::before,.pdfroot *::after{all:revert;color:inherit;font-family:inherit;box-sizing:border-box;}.pdfroot{display:block;color:#111;background:#fff;}';
 
@@ -3851,20 +3876,22 @@ container.innerHTML = workOrders.map(wo => {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const contentHeight = contentEl.scrollHeight || 1123;
         const pdfScale = isIOS ? Math.min(2, Math.sqrt(10000000 / (794 * contentHeight))) : 2;
+        const pdfMargin = brand ? [12, 10, 14, 10] : [10, 10, 10, 10];
+        let pdfLinks = [];
         const worker = html2pdf().set({
-          margin: brand ? [12, 10, 14, 10] : 10,
+          margin: pdfMargin,
           filename,
-          enableLinks: true,
+          enableLinks: false,
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: pdfScale, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'], avoid: ['.pdf-avoid'] }
         }).from(contentEl);
-        if (brand) {
-          await worker.toPdf().get('pdf').then(pdf => vdbPdfDecorate(pdf)).save();
-        } else {
-          await worker.save();
-        }
+        // Links zelf plaatsen: html2pdf zet links van naar de volgende pagina geschoven blokken op de verkeerde pagina
+        await worker
+          .toContainer().get('container').then(c => { pdfLinks = collectPdfLinks(c); })
+          .toPdf().get('pdf').then(pdf => { addPdfLinks(pdf, pdfLinks, pdfMargin); if (brand) vdbPdfDecorate(pdf); })
+          .save();
       } finally {
         wrapper.remove();
       }
