@@ -3094,8 +3094,9 @@
     function openTimeRegistrationDialog() {
       const customer = state.enrichedCustomers.find(c => c.id === state.selectedCustomerId);
       if (!customer) { showToast('Selecteer eerst een klant'); return; }
-      const customerMachines = customer.machines || [];
-      if (!customerMachines.length) { showToast('Geen machines gevonden bij deze klant'); return; }
+      // Uren alleen boeken op de MultiPack (storingen gaan altijd over de robot)
+      const customerMachines = (customer.machines || []).filter(m => String(m.type || '').toLowerCase() === MAINTENANCE_MACHINE_TYPE.toLowerCase());
+      if (!customerMachines.length) { showToast('Geen MultiPack gevonden bij deze klant'); return; }
       const container = el('machinesDialogList');
       el('machinesDialogCustomer').textContent = customer.name || '-';
       el('machinesTitleCount').textContent = `${customerMachines.length}`;
