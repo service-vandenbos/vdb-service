@@ -933,6 +933,7 @@
         <div>
           <h3 class="text-lg font-semibold">Service formulieren</h3>
           <div id="serviceFormsCustomerLabel" class="mt-1 text-sm text-slate-400">-</div>
+          <div id="sfStorageInfo" class="mt-2 text-xs text-slate-500"></div>
         </div>
         <button id="closeServiceFormsBtn" class="rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-400">Sluiten</button>
       </div>
@@ -1985,18 +1986,121 @@
       const rawDataUrl = await readFileAsDataUrl(file);
       const img = await loadImage(rawDataUrl);
 
-      const maxWidth = 1280;
-      const scale = Math.min(1, maxWidth / (img.width || maxWidth));
-      const width = Math.max(1, Math.round((img.width || maxWidth) * scale));
-      const height = Math.max(1, Math.round((img.height || maxWidth) * scale));
+      // Langste zijde max 1650 px, JPEG 85%: tekst op typeplaatjes blijft leesbaar
+      const maxSide = 1650;
+      const w0 = img.width || maxSide, h0 = img.height || maxSide;
+      const scale = Math.min(1, maxSide / Math.max(w0, h0));
+      const width = Math.max(1, Math.round(w0 * scale));
+      const height = Math.max(1, Math.round(h0 * scale));
 
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
-      return canvas.toDataURL('image/jpeg', 0.75);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    }
+
+    // Foto schermvullend bekijken (eigen dialog, zodat hij boven andere dialogs komt)
+    function openPhotoViewer(srcs, startIndex = 0, title = '') {
+      const list = (srcs || []).filter(Boolean);
+      if (!list.length) return;
+      let idx = Math.min(Math.max(0, startIndex), list.length - 1);
+      let zoomed = false;
+      const dlg = document.createElement('dialog');
+      dlg.className = 'm-0 h-full max-h-none w-full max-w-none bg-black/95 p-0 text-white backdrop:bg-black/80';
+      dlg.style.cssText = 'width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;';
+      dlg.innerHTML = `
+        <div class="flex h-full flex-col">
+          <div class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <span data-pv-title class="truncate"></span>
+            <button type="button" data-pv-close class="rounded-xl bg-white/10 px-3 py-2 hover:bg-white/20">Sluiten ✕</button>
+          </div>
+          <div data-pv-stage class="flex flex-1 overflow-auto">
+            <img data-pv-img alt="Foto" class="m-auto max-h-full max-w-full cursor-zoom-in" />
+          </div>
+          <div class="flex items-center justify-center gap-3 px-4 py-3 text-sm">
+            <button type="button" data-pv-prev class="rounded-xl bg-white/10 px-3 py-2 hover:bg-white/20">‹ Vorige</button>
+            <button type="button" data-pv-zoom class="rounded-xl bg-white/10 px-3 py-2 hover:bg-white/20">Inzoomen</button>
+            <button type="button" data-pv-next class="rounded-xl bg-white/10 px-3 py-2 hover:bg-white/20">Volgende ›</button>
+          </div>
+        </div>`;
+      const q = (sel) => dlg.querySelector(sel);
+      const img = q('[data-pv-img]');
+      const setZoom = (on) => {
+        zoomed = on;
+        img.classList.toggle('max-h-full', !on);
+        img.classList.toggle('max-w-full', !on);
+        img.classList.toggle('cursor-zoom-in', !on);
+        img.classList.toggle('cursor-zoom-out', on);
+        q('[data-pv-zoom]').textContent = on ? 'Uitzoomen' : 'Inzoomen';
+      };
+      const show = () => {
+        setZoom(false);
+        img.src = list[idx];
+        q('[data-pv-title]').textContent = `${title ? title + ' · ' : ''}foto ${idx + 1} van ${list.length}`;
+        q('[data-pv-prev]').classList.toggle('invisible', list.length < 2);
+        q('[data-pv-next]').classList.toggle('invisible', list.length < 2);
+      };
+      img.addEventListener('click', () => setZoom(!zoomed));
+      q('[data-pv-zoom]').addEventListener('click', () => setZoom(!zoomed));
+      q('[data-pv-prev]').addEventListener('click', () => { idx = (idx - 1 + list.length) % list.length; show(); });
+      q('[data-pv-next]').addEventListener('click', () => { idx = (idx + 1) % list.length; show(); });
+      q('[data-pv-close]').addEventListener('click', () => dlg.close());
+      dlg.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') q('[data-pv-prev]').click();
+        if (e.key === 'ArrowRight') q('[data-pv-next]').click();
+      });
+      dlg.addEventListener('close', () => dlg.remove());
+      document.body.appendChild(dlg);
+      show();
+      dlg.showModal();
+    }
+
+    const SF_MAX_PHOTOS = 10;
+
+    // Foto-preview in het service formulier: klik = groot bekijken, ✕ = verwijderen (alleen nieuwe foto's)
+    function addServiceFormPhotoPreview(preview, src, { sectionKey, dataUrl, existingId } = {}) {
+      const wrap = document.createElement('div');
+      wrap.className = 'relative';
+      const img = document.createElement('img');
+      img.src = src;
+      img.className = 'h-16 w-16 rounded-lg object-cover border border-white/10 cursor-zoom-in';
+      img.title = 'Klik om groot te bekijken';
+      if (dataUrl) { img.dataset.sfPhotoData = dataUrl; img.dataset.sfPhotoSection = sectionKey; }
+      if (existingId) img.dataset.existingPhoto = existingId;
+      img.addEventListener('click', () => {
+        const imgs = Array.from(preview.querySelectorAll('img'));
+        openPhotoViewer(imgs.map(i => i.src), imgs.indexOf(img));
+      });
+      wrap.appendChild(img);
+      if (dataUrl) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.textContent = '✕';
+        del.title = 'Foto verwijderen';
+        del.className = 'absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full bg-slate-800 text-[10px] leading-5 text-slate-200 border border-white/20 hover:bg-red-500';
+        del.addEventListener('click', (e) => { e.stopPropagation(); wrap.remove(); });
+        wrap.appendChild(del);
+      }
+      preview.appendChild(wrap);
+    }
+
+    // Schatting foto-opslag (aantal foto's × gemiddelde grootte), gratis Supabase-plan = 1 GB
+    async function updatePhotoStorageInfo() {
+      const box = el('sfStorageInfo');
+      if (!box || !state.supabase) return;
+      const { count, error } = await state.supabase.from('service_form_photos').select('id', { count: 'exact', head: true });
+      if (error || count == null) { box.textContent = ''; return; }
+      const mb = count * 0.4;
+      const pct = Math.min(100, (mb / 1024) * 100);
+      const color = pct >= 85 ? '#ef4444' : pct >= 65 ? '#f59e0b' : '#4d9a30';
+      box.innerHTML = `<div>Foto-opslag: ± ${Math.round(mb)} MB van 1 GB (${count} foto's)</div>
+        <div class="mt-1 h-1.5 w-48 overflow-hidden rounded bg-white/10"><div style="width:${pct.toFixed(1)}%;background:${color};" class="h-full"></div></div>`;
     }
 
     function getMachineEvents(machineId) {
@@ -3750,6 +3854,7 @@ container.innerHTML = workOrders.map(wo => {
         const worker = html2pdf().set({
           margin: brand ? [12, 10, 14, 10] : 10,
           filename,
+          enableLinks: true,
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: pdfScale, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -4300,19 +4405,16 @@ function trField(obj, field, lang) {
         input.addEventListener('change', async (e) => {
           const sectionKey = e.target.dataset.sfPhoto;
           const preview = container.querySelector(`[data-sf-photo-preview="${sectionKey}"]`);
-          const files = Array.from(e.target.files);
+          let files = Array.from(e.target.files);
           e.target.value = '';
+          const current = container.querySelectorAll('img[data-sf-photo-data], img[data-existing-photo]').length;
+          const room = SF_MAX_PHOTOS - current;
+          if (room <= 0) { showToast(`Maximaal ${SF_MAX_PHOTOS} foto's per formulier`); return; }
+          if (files.length > room) { showToast(`Maximaal ${SF_MAX_PHOTOS} foto's per formulier — ${room} toegevoegd`); files = files.slice(0, room); }
           for (const file of files) {
             try {
               const compressedDataUrl = await preparePhotoValue(file);
-              const img = document.createElement('img');
-              img.src = compressedDataUrl;
-              img.className = 'h-16 w-16 rounded-lg object-cover border border-white/10 cursor-pointer';
-              img.dataset.sfPhotoData = compressedDataUrl;
-              img.dataset.sfPhotoSection = sectionKey;
-              img.title = 'Klik om te verwijderen';
-              img.addEventListener('click', () => img.remove());
-              preview.appendChild(img);
+              addServiceFormPhotoPreview(preview, compressedDataUrl, { sectionKey, dataUrl: compressedDataUrl });
             } catch (err) {
               console.error('Foto comprimeren mislukt', err);
               showToast('Foto verwerken mislukt, probeer opnieuw');
@@ -4371,10 +4473,16 @@ function trField(obj, field, lang) {
       const chips = [['checked', t.colCheck], ['adjusted', t.colAdjust], ['cleaned', t.colClean], ['replaced', t.colReplace]]
         .map(([col, label]) => { const n = countCol(col); return n ? `<span class="sf-chip">${n} ${label}</span>` : ''; }).join('');
       const sectionPhotos = (photos || []).filter(p => p.section === section.key);
+      const SF_PHOTO_HINT = { nl: 'Klik op een foto om de scherpe versie te openen', de: 'Klicken Sie auf ein Foto, um die scharfe Version zu öffnen', en: 'Click a photo to open the sharp version' };
+      const photoLink = (p) => { const u = p.link_url || p.photo_url || ''; return /^https?:\/\//.test(u) ? u : ''; };
+      const anyLink = sectionPhotos.some(photoLink);
       const photosHtml = sectionPhotos.length ? `
         <div class="sf-photos pdf-avoid">
-          ${sectionPhotos.map(p => `<div class="sf-photo" style="background-image:url('${p.photo_url}');"></div>`).join('')}
-        </div>` : '';
+          ${sectionPhotos.map(p => { const u = photoLink(p); return u
+            ? `<a class="sf-photo" href="${u}" target="_blank" style="background-image:url('${p.photo_url}');"></a>`
+            : `<div class="sf-photo" style="background-image:url('${p.photo_url}');"></div>`; }).join('')}
+        </div>
+        ${anyLink ? `<div class="sf-hint" style="margin-top:4px;">🔍 ${SF_PHOTO_HINT[pdfLang] || SF_PHOTO_HINT.nl}</div>` : ''}` : '';
         return `<div class="sf-sec">
         <div class="sf-sechead pdf-avoid"><div class="vb-h2">${sectionTitleTr || section.title}</div><div class="sf-chips">${chips}</div></div>
         <table class="sf-table">
@@ -4397,7 +4505,7 @@ function trField(obj, field, lang) {
       const SF_TITLE = { nl: 'Servicerapport', en: 'Service Report', de: 'Servicebericht' };
       const sfLocale = { nl: 'nl-NL', en: 'en-GB', de: 'de-DE' }[pdfLang] || 'nl-NL';
       const sfDate = form.form_date ? new Date(form.form_date).toLocaleDateString(sfLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-      const cssText = VDB_PDF_CSS + `.pdfroot .sf-head{border-bottom:2px solid #4d9a30;}.pdfroot .sf-cards{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}.pdfroot .sf-cards .vb-card{flex:1 1 30%;}.pdfroot .sf-sec{margin-top:6px;}.pdfroot .sf-sechead{display:flex;justify-content:space-between;align-items:flex-end;}.pdfroot .sf-chips{margin:20px 0 8px;}.pdfroot .sf-chip{display:inline-block;margin-left:5px;background:#edf6e9;color:#3b7a24;font-weight:bold;border-radius:10px;padding:2px 8px;font-size:9px;}.pdfroot .sf-table th.c,.pdfroot .sf-table td.c{text-align:center;width:11%;}.pdfroot .sf-table td{vertical-align:middle;}.pdfroot .sf-item{color:#1d2329;}.pdfroot .sf-hint{margin-top:2px;font-size:8.5px;color:#8a9096;}.pdfroot .sf-dot{display:inline-block;position:relative;width:14px;height:14px;border-radius:50%;border:1.5px solid #c9ced3;vertical-align:middle;}.pdfroot .sf-dot.on{background:#4d9a30;border-color:#4d9a30;}.pdfroot .sf-dot.on i{position:absolute;left:4px;top:1.5px;width:3.5px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg);}.pdfroot .sf-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}.pdfroot .sf-photo{width:calc(33.33% - 6px);height:170px;border:1px solid #e3e6ea;border-radius:6px;background-color:#f6f8fa;background-position:center;background-size:contain;background-repeat:no-repeat;}`;
+      const cssText = VDB_PDF_CSS + `.pdfroot .sf-head{border-bottom:2px solid #4d9a30;}.pdfroot .sf-cards{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}.pdfroot .sf-cards .vb-card{flex:1 1 30%;}.pdfroot .sf-sec{margin-top:6px;}.pdfroot .sf-sechead{display:flex;justify-content:space-between;align-items:flex-end;}.pdfroot .sf-chips{margin:20px 0 8px;}.pdfroot .sf-chip{display:inline-block;margin-left:5px;background:#edf6e9;color:#3b7a24;font-weight:bold;border-radius:10px;padding:2px 8px;font-size:9px;}.pdfroot .sf-table th.c,.pdfroot .sf-table td.c{text-align:center;width:11%;}.pdfroot .sf-table td{vertical-align:middle;}.pdfroot .sf-item{color:#1d2329;}.pdfroot .sf-hint{margin-top:2px;font-size:8.5px;color:#8a9096;}.pdfroot .sf-dot{display:inline-block;position:relative;width:14px;height:14px;border-radius:50%;border:1.5px solid #c9ced3;vertical-align:middle;}.pdfroot .sf-dot.on{background:#4d9a30;border-color:#4d9a30;}.pdfroot .sf-dot.on i{position:absolute;left:4px;top:1.5px;width:3.5px;height:7px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg);}.pdfroot .sf-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}.pdfroot .sf-photo{display:block;width:calc(33.33% - 6px);height:170px;border:1px solid #e3e6ea;border-radius:6px;background-color:#f6f8fa;background-position:center;background-size:contain;background-repeat:no-repeat;}`;
       const innerHtml = `
       <div class="vb-head sf-head pdf-avoid"><img class="vb-logo" src="${VDB_PDF_LOGO}" alt="Van den Bos Robotics" /><div class="vb-doc"><div class="vb-type">${SF_TITLE[pdfLang] || SF_TITLE.nl}</div><div class="vb-nr">${t.date} <strong>${sfDate}</strong></div></div></div>
       <div class="sf-cards pdf-avoid">
@@ -4476,12 +4584,7 @@ function trField(obj, field, lang) {
       photos.forEach(photo => {
         const preview = el('serviceFormSections').querySelector(`[data-sf-photo-preview="${photo.section}"]`);
         if (!preview) return;
-        const img = document.createElement('img');
-        img.src = photo.photo_url;
-        img.className = 'h-16 w-16 rounded-lg object-cover border border-white/10';
-        img.title = 'Bestaande foto';
-        img.dataset.existingPhoto = photo.id;
-        preview.appendChild(img);
+        addServiceFormPhotoPreview(preview, photo.photo_url, { existingId: photo.id });
       });
 
       openModal('serviceFormDialog');
@@ -4493,6 +4596,7 @@ function trField(obj, field, lang) {
       state.serviceFormCustomerId = customer.id;
       el('serviceFormsCustomerLabel').textContent = customer.name || '-';
       openModal('serviceFormsDialog');
+      updatePhotoStorageInfo().catch(err => console.error('Opslag-info mislukt', err));
       await loadServiceFormsHistory(customer.id);
     }
 
@@ -4967,7 +5071,7 @@ function trField(obj, field, lang) {
         const { data: savedPhotos } = await state.supabase.from('service_form_photos').select('*').eq('form_id', formId);
         // Nieuwe foto's uit het geheugen gebruiken i.p.v. opnieuw downloaden
         const localByUrl = new Map(uploadedPhotos.map(p => [p.photo_url, p.localData]));
-        const pdfPhotos = (savedPhotos || []).map(p => ({ ...p, photo_url: localByUrl.get(p.photo_url) || p.photo_url }));
+        const pdfPhotos = (savedPhotos || []).map(p => ({ ...p, link_url: p.photo_url, photo_url: localByUrl.get(p.photo_url) || p.photo_url }));
         await downloadServiceFormPdf(formForPdf, items, pdfPhotos, pdfCustomer);
       } catch (pdfErr) {
         console.error('PDF-download na opslaan mislukt:', pdfErr);
